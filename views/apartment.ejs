@@ -1,0 +1,66 @@
+<%- include('partials/header') %>
+
+<p class="small"><a href="/">← All apartments</a></p>
+
+<div class="grid-2">
+  <div class="stack">
+    <div class="card" style="overflow:hidden">
+      <%- include('partials/apt-image', { apt: apartment, showStatus: true }) %>
+      <div class="card-body">
+        <h1 style="margin-bottom:4px"><%= apartment.title %></h1>
+        <p class="muted"><%= apartment.neighbourhood %>, <%= apartment.city %></p>
+        <div class="facts">
+          <span>🛏 <%= apartment.bedrooms %> bedroom<%= apartment.bedrooms === 1 ? '' : 's' %></span>
+          <span>🛁 <%= apartment.bathrooms %> bathroom<%= apartment.bathrooms === 1 ? '' : 's' %></span>
+          <span>👤 Listed by <%= apartment.landlord_name %></span>
+        </div>
+      </div>
+    </div>
+    <div class="card pad">
+      <h2>About this apartment</h2>
+      <p style="white-space:pre-line"><%= apartment.description || 'No description yet.' %></p>
+      <% if (apartment.amenities) { %>
+        <h3 style="margin-top:14px">Amenities</h3>
+        <div class="months">
+          <% apartment.amenities.split(',').map(s => s.trim()).filter(Boolean).forEach(a => { %><span class="badge plain"><%= a %></span><% }) %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <aside>
+    <div class="card pad" style="position:sticky;top:84px">
+      <div class="label muted small">Monthly rent</div>
+      <div style="font-size:1.8rem;font-weight:800"><%= h.money(apartment.rent_amount) %></div>
+      <p class="tiny">Paid monthly via Mobile Money (MTN MoMo, Airtel Money, Zamtel Kwacha)</p>
+      <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+
+      <% if (applyState === 'can_apply') { %>
+        <form method="post" action="/apartments/<%= apartment.id %>/apply">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <div class="field">
+            <label for="message">Message to the landlord</label>
+            <textarea id="message" name="message" placeholder="Introduce yourself: who will live here, when you want to move in…"></textarea>
+          </div>
+          <button class="btn block">Apply for this apartment</button>
+        </form>
+        <p class="tiny" style="margin-top:10px">Have an invite code from the landlord? <a href="/tenant">Enter it here</a>.</p>
+      <% } else if (applyState === 'guest') { %>
+        <a class="btn block" href="/register?role=tenant&next=/apartments/<%= apartment.id %>">Sign up to apply</a>
+        <p class="small muted" style="margin-top:10px;text-align:center">Already have an account? <a href="/login?next=/apartments/<%= apartment.id %>">Log in</a></p>
+      <% } else if (applyState === 'applied') { %>
+        <div class="callout">You've applied for this apartment. You'll see the landlord's decision on <a href="/tenant">My home</a>.</div>
+      <% } else if (applyState === 'has_home') { %>
+        <div class="callout">You're already connected to an apartment. <a href="/tenant">Go to My home</a>.</div>
+      <% } else if (applyState === 'owner') { %>
+        <a class="btn block secondary" href="/landlord/apartments/<%= apartment.id %>">Manage this apartment</a>
+      <% } else if (applyState === 'taken') { %>
+        <div class="callout">This apartment is currently occupied.</div>
+      <% } else { %>
+        <p class="small muted">Landlord accounts can't apply for apartments.</p>
+      <% } %>
+    </div>
+  </aside>
+</div>
+
+<%- include('partials/footer') %>

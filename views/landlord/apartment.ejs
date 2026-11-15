@@ -1,0 +1,144 @@
+<%- include('../partials/header') %>
+<% const a = apartment; const openIssues = issues.filter(i => i.status !== 'resolved').length; const base = '/landlord/apartments/' + a.id; %>
+
+<p class="small"><a href="/landlord">← Dashboard</a></p>
+<div class="page-head">
+  <div>
+    <h1><%= a.title %> <%- include('../partials/status', { s: a.status }) %></h1>
+    <p class="muted"><%= a.neighbourhood %>, <%= a.city %> · <%= a.bedrooms %> bed · <%= a.bathrooms %> bath · <%= h.money(a.rent_amount) %>/month</p>
+  </div>
+  <a class="btn secondary" href="/apartments/<%= a.id %>">View public listing</a>
+</div>
+
+<nav class="tabs">
+  <a href="<%= base %>" class="<%= tab === 'tenant' ? 'active' : '' %>">Tenant</a>
+  <a href="<%= base %>?tab=issues" class="<%= tab === 'issues' ? 'active' : '' %>">Problems &amp; suggestions <span class="count"><%= openIssues %></span></a>
+  <a href="<%= base %>?tab=payments" class="<%= tab === 'payments' ? 'active' : '' %>">Payments <span class="count"><%= payments.length %></span></a>
+  <a href="<%= base %>?tab=edit" class="<%= tab === 'edit' ? 'active' : '' %>">Edit listing</a>
+</nav>
+
+<% if (tab === 'tenant') { %>
+  <% if (tenant) { %>
+    <div class="grid-2">
+      <div class="card pad">
+        <div class="li-row">
+          <div class="person">
+            <div class="avatar lg"><%= h.initials(tenant.name) %></div>
+            <div><h2 style="margin:0"><%= tenant.name %></h2><div class="small muted">Tenant since <%= h.date(tenant.start_date) %></div></div>
+          </div>
+          <% if (paidThisMonth) { %><span class="badge green">Rent paid this month</span><% } else { %><span class="badge red">Rent not paid this month</span><% } %>
+        </div>
+        <dl class="details" style="margin-top:18px">
+          <dt>Phone</dt><dd><% if (tenant.phone) { %><a href="tel:<%= tenant.phone %>"><%= tenant.phone %></a><% } else { %>—<% } %></dd>
+          <dt>Email</dt><dd><a href="mailto:<%= tenant.email %>"><%= tenant.email %></a></dd>
+          <dt>Occupation</dt><dd><%= tenant.occupation || '—' %></dd>
+          <dt>Emergency contact</dt><dd><%= tenant.emergency_contact || '—' %></dd>
+          <dt>Open issues</dt><dd><a href="<%= base %>?tab=issues"><%= openIssues %></a></dd>
+          <dt>Total paid</dt><dd><%= h.money(payments.filter(p => p.tenant_id === tenant.id && p.status === 'success').reduce((s, p) => s + p.amount, 0)) %></dd>
+        </dl>
+      </div>
+      <div class="card pad">
+        <h3>End tenancy</h3>
+        <p class="small muted">When the tenant moves out, end the tenancy. The apartment goes back on the public listings, and the history stays here.</p>
+        <form method="post" action="/landlord/tenancies/<%= tenant.tenancy_id %>/end" onsubmit="return confirm('End the tenancy for <%= tenant.name.replace(/'/g, '') %>? The apartment will be listed as available again.')">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <button class="btn danger">End tenancy</button>
+        </form>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><h2>Applications</h2></div>
+        <% if (!applications.length) { %><div class="empty">No one has applied yet. The apartment is visible on the public listings.</div><% } else { %>
+          <ul class="list">
+            <% applications.forEach(ap => { %>
+              <li>
+                <div class="li-row">
+                  <div class="person"><div class="avatar"><%= h.initials(ap.name) %></div>
+                    <div><b><%= ap.name %></b><div class="tiny"><%= ap.email %><%= ap.phone ? ' · ' + ap.phone : '' %><%= ap.occupation ? ' · ' + ap.occupation : '' %></div></div>
+                  </div>
+                  <div style="display:flex;gap:6px">
+                    <form class="inline-form" method="post" action="/landlord/applications/<%= ap.id %>/approve"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="back" value="apartment"><button class="btn sm">Approve</button></form>
+                    <form class="inline-form" method="post" action="/landlord/applications/<%= ap.id %>/reject"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="back" value="apartment"><button class="btn sm secondary">Decline</button></form>
+                  </div>
+                </div>
+                <% if (ap.message) { %><div class="response">“<%= ap.message %>”</div><% } %>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </div>
+      <div class="card pad">
+        <h2>Invite a tenant</h2>
+        <p class="small muted">Already have someone moving in? Create a code and give it to them. They enter it after signing up and are connected straight away.</p>
+        <form method="post" action="<%= base %>/invites">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <div class="row">
+            <div class="field"><label for="tenant_name">Tenant name <span class="tiny">(optional)</span></label><input type="text" id="tenant_name" name="tenant_name"></div>
+            <div class="field"><label for="tenant_email">Email <span class="tiny">(optional)</span></label><input type="email" id="tenant_email" name="tenant_email"></div>
+          </div>
+          <button class="btn">Create invite code</button>
+        </form>
+        <% const openInvites = invites.filter(i => !i.used_by); if (openInvites.length) { %>
+          <h3 style="margin-top:20px">Active codes</h3>
+          <ul class="list" style="margin:0 -20px">
+            <% openInvites.forEach(i => { %>
+              <li class="li-row">
+                <div><span class="code"><%= i.code %></span><div class="tiny" style="margin-top:4px"><%= i.tenant_name || 'Anyone with the code' %> · <%= h.date(i.created_at) %></div></div>
+                <form class="inline-form" method="post" action="/landlord/invites/<%= i.id %>/delete"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm secondary">Cancel</button></form>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
+  <% if (pastTenants.length) { %>
+    <div class="card" style="margin-top:18px">
+      <div class="card-head"><h3>Past tenants</h3></div>
+      <ul class="list"><% pastTenants.forEach(p => { %><li class="small"><b><%= p.name %></b> · <%= h.date(p.start_date) %> – <%= h.date(p.end_date) %></li><% }) %></ul>
+    </div>
+  <% } %>
+<% } %>
+
+<% if (tab === 'issues') { %>
+  <div class="card">
+    <% if (!issues.length) { %><div class="empty">No problems or suggestions reported for this apartment.</div><% } else { %>
+      <ul class="list">
+        <% issues.forEach(i => { %><li><%- include('../partials/issue-manage', { i, back: base + '?tab=issues' }) %></li><% }) %>
+      </ul>
+    <% } %>
+  </div>
+<% } %>
+
+<% if (tab === 'payments') { %>
+  <div class="card">
+    <% if (!payments.length) { %><div class="empty">No payments for this apartment yet.</div><% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Tenant</th><th>Month</th><th>Method</th><th>Reference</th><th class="num">Amount</th><th>Status</th></tr></thead>
+        <tbody>
+          <% payments.forEach(p => { %>
+            <tr>
+              <td><%= h.date(p.paid_at || p.created_at) %></td>
+              <td><%= p.tenant_name %></td>
+              <td><b><%= h.period(p.period) %></b></td>
+              <td><%= h.NETWORKS[p.network] || 'Mobile Money' %><div class="tiny"><%= p.phone %></div></td>
+              <td class="tiny"><%= p.reference %></td>
+              <td class="num"><%= h.money(p.amount) %></td>
+              <td><%- include('../partials/status', { s: p.status }) %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table></div>
+    <% } %>
+  </div>
+<% } %>
+
+<% if (tab === 'edit') { %>
+  <div class="card pad" style="max-width:760px">
+    <%- include('apartment-form', { apartment: a }) %>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

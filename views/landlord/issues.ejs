@@ -1,0 +1,23 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div><h1>Problems &amp; suggestions</h1><p class="muted">What your tenants have reported, most urgent first.</p></div>
+</div>
+
+<form class="card filters" method="get" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr)) auto">
+  <div><label>Status</label>
+    <select name="status"><option value="">All</option><% ['open','in_progress','resolved'].forEach(s => { %><option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= h.STATUS_LABEL[s] %></option><% }) %></select>
+  </div>
+  <div><label>Type</label>
+    <select name="kind"><option value="">All</option><option value="problem" <%= filters.kind === 'problem' ? 'selected' : '' %>>Problems</option><option value="improvement" <%= filters.kind === 'improvement' ? 'selected' : '' %>>Suggestions</option></select>
+  </div>
+  <div><button class="btn">Filter</button></div>
+</form>
+
+<div class="card">
+  <% if (!issues.length) { %><div class="empty">Nothing here.</div><% } else { %>
+    <ul class="list">
+      <% issues.forEach(i => { %><li><%- include('../partials/issue-manage', { i, back: '/landlord/issues', showWhere: true }) %></li><% }) %>
+    </ul>
+  <% } %>
+</div>
+<%- include('../partials/footer') %>

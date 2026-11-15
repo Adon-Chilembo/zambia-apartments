@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · Zambia Apartments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="kente"></div>
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="/"><span class="logo-mark">⌂</span> Zambia Apartments</a>
+    <nav class="nav">
+      <a href="/" class="<%= path === '/' ? 'active' : '' %>">Apartments</a>
+      <% if (user && user.role === 'tenant') { %>
+        <a href="/tenant" class="<%= path.startsWith('/tenant') || path.startsWith('/pay') ? 'active' : '' %>">My home</a>
+      <% } else if (user && user.role === 'landlord') { %>
+        <a href="/landlord" class="<%= locals.section === 'dashboard' ? 'active' : '' %>">Dashboard</a>
+        <a href="/landlord/tenants" class="<%= locals.section === 'tenants' ? 'active' : '' %>">Tenants</a>
+        <a href="/landlord/issues" class="<%= locals.section === 'issues' ? 'active' : '' %>">Issues</a>
+        <a href="/landlord/payments" class="<%= locals.section === 'payments' ? 'active' : '' %>">Payments</a>
+      <% } %>
+      <% if (user) { %>
+        <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="linklike">Log out</button></form>
+        <span class="whoami"><%= user.name %> · <%= user.role %></span>
+      <% } else { %>
+        <a href="/login" class="<%= path === '/login' ? 'active' : '' %>">Log in</a>
+        <a class="btn sm" href="/register" style="color:#fff">Sign up</a>
+      <% } %>
+    </nav>
+  </div>
+</header>
+<main>
+<div class="wrap">
+<% if (flash) { %><div class="flash <%= flash.type %>"><%= flash.text %></div><% } %>

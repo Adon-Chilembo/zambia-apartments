@@ -1,0 +1,126 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1>Hello, <%= user.name.split(' ')[0] %></h1>
+    <p class="muted">Here's what's happening across your apartments in <%= h.period(month) %>.</p>
+  </div>
+  <a class="btn" href="/landlord/apartments/new">+ Add apartment</a>
+</div>
+
+<div class="stat-row">
+  <div class="card stat">
+    <div class="label">Apartments</div>
+    <div class="value"><%= stats.units %></div>
+    <div class="sub"><%= stats.occupied %> occupied · <%= stats.units - stats.occupied %> available</div>
+  </div>
+  <div class="card stat">
+    <div class="label">Rent collected · <%= h.period(month) %></div>
+    <div class="value"><%= h.money(stats.collected) %></div>
+    <div class="sub">of <%= h.money(stats.expected) %> expected</div>
+    <div class="meter"><i style="width:<%= stats.expected ? Math.min(100, Math.round(stats.collected / stats.expected * 100)) : 0 %>%"></i></div>
+  </div>
+  <div class="card stat">
+    <div class="label">Tenants not yet paid</div>
+    <div class="value" style="color:<%= stats.unpaid ? 'var(--red)' : 'inherit' %>"><%= stats.unpaid %></div>
+    <div class="sub">for <%= h.period(month) %></div>
+  </div>
+  <div class="card stat">
+    <div class="label">Open issues</div>
+    <div class="value"><%= stats.openIssues %></div>
+    <div class="sub"><a href="/landlord/issues">View all</a></div>
+  </div>
+</div>
+
+<% if (applications.length) { %>
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-head"><h2>Applications waiting for you</h2><span class="badge gold"><%= applications.length %> pending</span></div>
+    <ul class="list">
+      <% applications.forEach(a => { %>
+        <li class="li-row">
+          <div class="person">
+            <div class="avatar"><%= h.initials(a.name) %></div>
+            <div>
+              <b><%= a.name %></b> <span class="small muted">applied for <a href="/landlord/apartments/<%= a.apartment_id %>"><%= a.title %></a></span>
+              <div class="tiny"><%= a.email %><%= a.phone ? ' · ' + a.phone : '' %><%= a.occupation ? ' · ' + a.occupation : '' %> · <%= h.date(a.created_at) %></div>
+              <% if (a.message) { %><div class="response">“<%= a.message %>”</div><% } %>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <form class="inline-form" method="post" action="/landlord/applications/<%= a.id %>/approve"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm">Approve</button></form>
+            <form class="inline-form" method="post" action="/landlord/applications/<%= a.id %>/reject"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm secondary">Decline</button></form>
+          </div>
+        </li>
+      <% }) %>
+    </ul>
+  </div>
+<% } %>
+
+<div class="grid-2">
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h2>Your apartments</h2></div>
+      <% if (!apartments.length) { %>
+        <div class="empty">You haven't listed any apartments yet. <a href="/landlord/apartments/new">Add your first one</a>.</div>
+      <% } else { %>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Apartment</th><th>Tenant</th><th class="num">Rent</th><th>Issues</th><th>Status</th></tr></thead>
+          <tbody>
+            <% apartments.forEach(a => { %>
+              <tr>
+                <td><a href="/landlord/apartments/<%= a.id %>"><b><%= a.title %></b></a><div class="tiny"><%= a.neighbourhood %>, <%= a.city %></div></td>
+                <td><%= a.tenant_name || '—' %><% if (a.pending_apps) { %><div><span class="badge gold"><%= a.pending_apps %> applied</span></div><% } %></td>
+                <td class="num"><%= h.money(a.rent_amount) %></td>
+                <td><% if (a.open_issues) { %><span class="badge red"><%= a.open_issues %> open</span><% } else { %><span class="tiny">None</span><% } %></td>
+                <td><%- include('../partials/status', { s: a.status }) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table></div>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Rent status · <%= h.period(month) %></h2><a class="small" href="/landlord/tenants">All tenants</a></div>
+      <% if (!tenants.length) { %><div class="empty">No tenants yet.</div><% } else { %>
+        <ul class="list">
+          <% tenants.forEach(t => { %>
+            <li class="li-row">
+              <div class="person">
+                <div class="avatar"><%= h.initials(t.name) %></div>
+                <div><b><%= t.name %></b><div class="tiny"><%= t.title %> · <%= h.money(t.rent_amount) %>/month</div></div>
+              </div>
+              <% if (t.paid_this_month) { %><span class="badge green">Paid</span><% } else { %><span class="badge red">Not paid</span><% } %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h2>Needs attention</h2><a class="small" href="/landlord/issues">All issues</a></div>
+      <% if (!issues.length) { %><div class="empty">No open problems or suggestions. 🎉</div><% } else { %>
+        <ul class="list">
+          <% issues.forEach(i => { %><li><%- include('../partials/issue-manage', { i, back: '/landlord', showWhere: true }) %></li><% }) %>
+        </ul>
+      <% } %>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>Latest payments</h2><a class="small" href="/landlord/payments">All payments</a></div>
+      <% if (!recentPayments.length) { %><div class="empty">No payments yet.</div><% } else { %>
+        <ul class="list">
+          <% recentPayments.forEach(p => { %>
+            <li class="li-row">
+              <div><b><%= p.tenant_name %></b><div class="tiny"><%= p.apartment_title %> · <%= h.period(p.period) %> · <%= h.date(p.paid_at || p.created_at) %></div></div>
+              <div style="text-align:right"><b><%= h.money(p.amount) %></b><div><%- include('../partials/status', { s: p.status }) %></div></div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

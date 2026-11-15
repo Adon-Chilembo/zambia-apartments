@@ -1,0 +1,195 @@
+<%- include('../partials/header') %>
+<%
+  const openIssues = issues.filter(i => i.status !== 'resolved');
+  const issueRow = (i) => i;
+%>
+
+<div class="page-head">
+  <div>
+    <h1><%= home.title %></h1>
+    <p class="muted"><%= home.neighbourhood %>, <%= home.city %> · tenant since <%= h.date(home.start_date) %></p>
+  </div>
+  <a class="btn gold" href="/tenant?tab=payments#pay">Pay rent</a>
+</div>
+
+<nav class="tabs">
+  <a href="/tenant" class="<%= tab === 'overview' ? 'active' : '' %>">Overview</a>
+  <a href="/tenant?tab=issues" class="<%= tab === 'issues' ? 'active' : '' %>">Problems &amp; suggestions <span class="count"><%= openIssues.length %></span></a>
+  <a href="/tenant?tab=payments" class="<%= tab === 'payments' ? 'active' : '' %>">Payments</a>
+  <a href="/tenant?tab=profile" class="<%= tab === 'profile' ? 'active' : '' %>">My details</a>
+</nav>
+
+<% if (tab === 'overview') { %>
+  <div class="stat-row">
+    <div class="card stat">
+      <div class="label">Rent for <%= h.period(thisMonth) %></div>
+      <div class="value"><%= paidThisMonth ? 'Paid' : h.money(home.rent_amount) %></div>
+      <div class="sub"><%= paidThisMonth ? 'Thank you! You are up to date.' : 'Due this month' %></div>
+    </div>
+    <div class="card stat">
+      <div class="label">Open issues</div>
+      <div class="value"><%= openIssues.length %></div>
+      <div class="sub"><%= issues.length - openIssues.length %> resolved</div>
+    </div>
+    <div class="card stat">
+      <div class="label">Total rent paid</div>
+      <div class="value"><%= h.money(totalPaid) %></div>
+      <div class="sub"><%= payments.filter(p => p.status === 'success').length %> payments</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><h2>Recent issues</h2><a class="btn sm" href="/tenant?tab=issues#new">Report something</a></div>
+      <% if (!issues.length) { %><div class="empty">Nothing reported yet. If anything breaks or could be better, tell your landlord here.</div><% } else { %>
+        <ul class="list">
+          <% issues.slice(0, 4).forEach(i => { %>
+            <li>
+              <div class="li-row"><b><%= i.title %></b><%- include('../partials/status', { s: i.status }) %></div>
+              <div class="tiny"><%= i.kind === 'problem' ? 'Problem' : 'Suggestion' %> · <%= i.category %> · <%= h.date(i.created_at) %></div>
+              <% if (i.landlord_response) { %><div class="response"><b>Landlord:</b> <%= i.landlord_response %></div><% } %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+    <div class="card pad">
+      <h2>Your landlord</h2>
+      <div class="person" style="margin:12px 0 16px">
+        <div class="avatar lg"><%= h.initials(home.landlord_name) %></div>
+        <div><b><%= home.landlord_name %></b><div class="small muted">Landlord</div></div>
+      </div>
+      <dl class="details">
+        <dt>Phone</dt><dd><% if (home.landlord_phone) { %><a href="tel:<%= home.landlord_phone %>"><%= home.landlord_phone %></a><% } else { %>—<% } %></dd>
+        <dt>Email</dt><dd><a href="mailto:<%= home.landlord_email %>"><%= home.landlord_email %></a></dd>
+        <dt>Rent</dt><dd><%= h.money(home.rent_amount) %> / month</dd>
+        <dt>Home</dt><dd><%= home.bedrooms %> bed · <%= home.bathrooms %> bath</dd>
+      </dl>
+    </div>
+  </div>
+<% } %>
+
+<% if (tab === 'issues') { %>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><h2>Everything you've reported</h2></div>
+      <% if (!issues.length) { %><div class="empty">No problems or suggestions yet.</div><% } else { %>
+        <ul class="list">
+          <% issues.forEach(i => { %>
+            <li>
+              <div class="li-row"><b><%= i.title %></b><%- include('../partials/status', { s: i.status }) %></div>
+              <div class="issue-meta">
+                <span class="badge plain <%= i.kind === 'problem' ? '' : 'blue' %>"><%= i.kind === 'problem' ? 'Problem' : 'Suggestion' %></span>
+                <span class="badge plain"><%= i.category %></span>
+                <% if (i.urgency === 'urgent') { %><span class="badge red">Urgent</span><% } %>
+                <span class="tiny"><%= h.date(i.created_at) %></span>
+              </div>
+              <% if (i.description) { %><p class="small muted" style="margin:0"><%= i.description %></p><% } %>
+              <% if (i.landlord_response) { %><div class="response"><b>Landlord:</b> <%= i.landlord_response %></div><% } %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+    <div class="card pad" id="new">
+      <h2>Tell your landlord</h2>
+      <form method="post" action="/tenant/issues">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <div class="role-pick">
+          <label><input type="radio" name="kind" value="problem" checked><b>A problem</b><span class="tiny">Something is broken or wrong</span></label>
+          <label><input type="radio" name="kind" value="improvement"><b>A suggestion</b><span class="tiny">Something could be better</span></label>
+        </div>
+        <div class="row">
+          <div class="field"><label for="category">Category</label>
+            <select id="category" name="category"><% categories.forEach(c => { %><option><%= c %></option><% }) %></select>
+          </div>
+          <div class="field"><label for="urgency">Urgency</label>
+            <select id="urgency" name="urgency"><option value="low">Low</option><option value="normal" selected>Normal</option><option value="urgent">Urgent</option></select>
+          </div>
+        </div>
+        <div class="field"><label for="title">Short title</label><input type="text" id="title" name="title" required maxlength="140" placeholder="e.g. Kitchen tap is leaking"></div>
+        <div class="field"><label for="description">Details</label><textarea id="description" name="description" placeholder="What's happening, since when, where in the apartment…"></textarea></div>
+        <button class="btn block">Send to landlord</button>
+      </form>
+    </div>
+  </div>
+<% } %>
+
+<% if (tab === 'payments') { %>
+  <div class="grid-2">
+    <div class="stack">
+      <div class="card pad">
+        <h2>Rent calendar</h2>
+        <div class="months" style="margin-top:10px">
+          <% periods.forEach(p => { %><span class="month <%= paidPeriods.includes(p) ? 'paid' : '' %> <%= p === thisMonth ? 'now' : '' %>"><%= h.period(p) %><%= paidPeriods.includes(p) ? ' ✓' : '' %></span><% }) %>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Payment history</h2><span class="small muted">Total paid <b><%= h.money(totalPaid) %></b></span></div>
+        <% if (!payments.length) { %><div class="empty">No payments yet.</div><% } else { %>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Month</th><th>Date</th><th>Method</th><th>Reference</th><th class="num">Amount</th><th>Status</th></tr></thead>
+            <tbody>
+              <% payments.forEach(p => { %>
+                <tr>
+                  <td><b><%= h.period(p.period) %></b></td>
+                  <td><%= h.date(p.paid_at || p.created_at) %></td>
+                  <td><%= networks[p.network] || 'Mobile Money' %><div class="tiny"><%= p.phone %></div></td>
+                  <td class="tiny"><%= p.reference %></td>
+                  <td class="num"><%= h.money(p.amount) %></td>
+                  <td><%- include('../partials/status', { s: p.status }) %><% if (p.status === 'pending' && paymentProvider === 'flutterwave') { %><form class="inline-form" method="post" action="/pay/recheck/<%= p.reference %>"><input type="hidden" name="_csrf" value="<%= csrf %>"> <button class="btn sm secondary">Check</button></form><% } %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table></div>
+        <% } %>
+      </div>
+    </div>
+    <div class="card pad" id="pay">
+      <h2>Pay rent with Mobile Money</h2>
+      <p class="muted small">Your rent is <b><%= h.money(home.rent_amount) %></b> per month. You'll get a prompt on your phone to approve the payment.</p>
+      <form method="post" action="/tenant/pay">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <div class="field"><label for="period">Month</label>
+          <select id="period" name="period">
+            <% periods.forEach(p => { if (!paidPeriods.includes(p)) { %><option value="<%= p %>" <%= p === nextUnpaid ? 'selected' : '' %>><%= h.period(p) %></option><% } }) %>
+          </select>
+        </div>
+        <div class="field"><label for="network">Network</label>
+          <select id="network" name="network" required>
+            <% Object.entries(networks).forEach(([k, v]) => { %><option value="<%= k %>"><%= v %></option><% }) %>
+          </select>
+        </div>
+        <div class="field"><label for="phone">Mobile Money number</label><input type="tel" id="phone" name="phone" value="<%= user.phone || '' %>" required placeholder="097 123 4567"></div>
+        <button class="btn gold block">Pay <%= h.money(home.rent_amount) %></button>
+      </form>
+      <% if (paymentProvider === 'simulator') { %>
+        <p class="tiny" style="margin-top:10px">Demo mode: no real money moves. Add a Flutterwave key to take real Mobile Money payments.</p>
+      <% } else { %>
+        <p class="tiny" style="margin-top:10px">Secured by Flutterwave.<% if (paymentKeyMode === 'test') { %> <span class="badge gold">Test mode: no real money is charged</span><% } %></p>
+      <% } %>
+    </div>
+  </div>
+<% } %>
+
+<% if (tab === 'profile') { %>
+  <div class="card pad" style="max-width:620px">
+    <h2>My details</h2>
+    <p class="muted small">Your landlord can see these details. Keep them up to date.</p>
+    <form method="post" action="/tenant/profile">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="row">
+        <div class="field"><label>Name</label><input type="text" value="<%= user.name %>" disabled></div>
+        <div class="field"><label>Email</label><input type="email" value="<%= user.email %>" disabled></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="phone2">Phone</label><input type="tel" id="phone2" name="phone" value="<%= user.phone || '' %>"></div>
+        <div class="field"><label for="occupation">Occupation</label><input type="text" id="occupation" name="occupation" value="<%= user.occupation || '' %>"></div>
+      </div>
+      <div class="field"><label for="emergency_contact">Emergency contact</label><input type="text" id="emergency_contact" name="emergency_contact" value="<%= user.emergency_contact || '' %>" placeholder="Name and phone number"></div>
+      <button class="btn">Save details</button>
+    </form>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

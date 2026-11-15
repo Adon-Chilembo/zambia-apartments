@@ -1,0 +1,33 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div><h1>Tenants</h1><p class="muted">Everyone currently living in your apartments.</p></div>
+</div>
+
+<% if (!tenants.length) { %>
+  <div class="card empty">No tenants yet. Approve an application or send an invite code from an apartment's page.</div>
+<% } else { %>
+  <div class="listing-grid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">
+    <% tenants.forEach(t => { %>
+      <div class="card pad">
+        <div class="li-row">
+          <div class="person">
+            <div class="avatar lg"><%= h.initials(t.name) %></div>
+            <div><b><%= t.name %></b><div class="small muted"><a href="/landlord/apartments/<%= t.apartment_id %>"><%= t.title %></a></div></div>
+          </div>
+          <% if (t.paid_this_month) { %><span class="badge green">Paid <%= h.period(month) %></span><% } else { %><span class="badge red">Unpaid <%= h.period(month) %></span><% } %>
+        </div>
+        <dl class="details" style="margin-top:14px">
+          <dt>Phone</dt><dd><% if (t.phone) { %><a href="tel:<%= t.phone %>"><%= t.phone %></a><% } else { %>—<% } %></dd>
+          <dt>Email</dt><dd><a href="mailto:<%= t.email %>"><%= t.email %></a></dd>
+          <dt>Occupation</dt><dd><%= t.occupation || '—' %></dd>
+          <dt>Emergency</dt><dd><%= t.emergency_contact || '—' %></dd>
+          <dt>Moved in</dt><dd><%= h.date(t.start_date) %></dd>
+          <dt>Rent</dt><dd><%= h.money(t.rent_amount) %> / month</dd>
+          <dt>Total paid</dt><dd><%= h.money(t.total_paid) %><%= t.last_paid ? ' · last ' + h.date(t.last_paid) : '' %></dd>
+          <dt>Open issues</dt><dd><%= t.open_issues %></dd>
+        </dl>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+<%- include('../partials/footer') %>

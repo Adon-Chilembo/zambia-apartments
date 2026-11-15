@@ -1,0 +1,26 @@
+<% const sw = h.swatch(apt.id); %>
+<div class="apt-img">
+  <% if (apt.image_url) { %>
+    <img src="<%= apt.image_url %>" alt="<%= apt.title %>" loading="lazy">
+  <% } else { %>
+    <div class="ph" aria-hidden="true">
+      <svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice">
+        <rect width="320" height="200" fill="<%= sw[1] %>"/>
+        <circle cx="262" cy="46" r="22" fill="#fff" opacity=".55"/>
+        <rect x="60" y="70" width="140" height="130" fill="<%= sw[0] %>"/>
+        <rect x="190" y="104" width="80" height="96" fill="<%= sw[0] %>" opacity=".8"/>
+        <% for (let r = 0; r < 4; r++) { for (let c = 0; c < 4; c++) { %>
+          <rect x="<%= 74 + c * 31 %>" y="<%= 84 + r * 27 %>" width="18" height="14" fill="#fff" opacity="<%= (r + c + apt.id) % 3 ? '.75' : '.35' %>"/>
+        <% } } %>
+        <% for (let r = 0; r < 3; r++) { %>
+          <rect x="204" y="<%= 118 + r * 26 %>" width="18" height="12" fill="#fff" opacity=".6"/>
+          <rect x="238" y="<%= 118 + r * 26 %>" width="18" height="12" fill="#fff" opacity=".6"/>
+        <% } %>
+        <rect x="0" y="190" width="320" height="10" fill="#1c1917" opacity=".15"/>
+      </svg>
+    </div>
+  <% } %>
+  <% if (typeof showStatus !== 'undefined' && showStatus) { %>
+    <span class="badge badge-on <%= apt.status === 'available' ? 'green' : 'gold' %>"><%= h.STATUS_LABEL[apt.status] %></span>
+  <% } %>
+</div>

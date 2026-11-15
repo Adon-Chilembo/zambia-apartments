@@ -1,0 +1,30 @@
+<% const a = apartment; const editing = !!a.id; %>
+<% if (!editing) { %><%- include('../partials/header') %>
+<p class="small"><a href="/landlord">← Dashboard</a></p>
+<div class="card pad" style="max-width:760px">
+  <h1>Add an apartment</h1>
+  <p class="muted">It will show on the public listings page right away.</p>
+<% } %>
+  <% if (locals.error) { %><div class="flash error"><%= error %></div><% } %>
+  <form method="post" action="<%= editing ? '/landlord/apartments/' + a.id : '/landlord/apartments' %>">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <div class="field"><label for="title">Title</label><input type="text" id="title" name="title" value="<%= a.title || '' %>" required placeholder="e.g. Bright 2-bedroom with balcony"></div>
+    <div class="row">
+      <div class="field"><label for="neighbourhood">Neighbourhood</label><input type="text" id="neighbourhood" name="neighbourhood" value="<%= a.neighbourhood || '' %>" required placeholder="Kabulonga"></div>
+      <div class="field"><label for="city">City</label><input type="text" id="city" name="city" value="<%= a.city || '' %>" required placeholder="Lusaka" list="cities"></div>
+    </div>
+    <datalist id="cities"><% ['Lusaka','Kitwe','Ndola','Livingstone','Kabwe','Chingola','Solwezi','Chipata','Kasama','Mufulira'].forEach(c => { %><option value="<%= c %>"><% }) %></datalist>
+    <div class="row">
+      <div class="field"><label for="bedrooms">Bedrooms</label><input type="number" id="bedrooms" name="bedrooms" min="0" max="20" value="<%= a.bedrooms ?? 1 %>"></div>
+      <div class="field"><label for="bathrooms">Bathrooms</label><input type="number" id="bathrooms" name="bathrooms" min="0" max="20" value="<%= a.bathrooms ?? 1 %>"></div>
+      <div class="field"><label for="rent_amount">Monthly rent (K, ZMW)</label><input type="number" id="rent_amount" name="rent_amount" min="1" step="0.01" value="<%= a.rent_amount || '' %>" required></div>
+    </div>
+    <div class="field"><label for="description">Description</label><textarea id="description" name="description" rows="5"><%= a.description || '' %></textarea></div>
+    <div class="field"><label for="amenities">Amenities <span class="tiny">(comma separated)</span></label><input type="text" id="amenities" name="amenities" value="<%= a.amenities || '' %>" placeholder="Air conditioning, Borehole, Security, Parking"></div>
+    <div class="field"><label for="image_url">Photo URL <span class="tiny">(optional)</span></label><input type="url" id="image_url" name="image_url" value="<%= a.image_url || '' %>" placeholder="https://…"></div>
+    <button class="btn"><%= editing ? 'Save changes' : 'List apartment' %></button>
+  </form>
+<% if (!editing) { %>
+</div>
+<%- include('../partials/footer') %>
+<% } %>

@@ -1,0 +1,3 @@
+<%
+  const colours = { open: 'red', in_progress: 'gold', resolved: 'green', pending: 'gold', success: 'green', failed: 'red', approved: 'green', rejected: '', available: 'green', occupied: 'gold' };
+%><span class="badge <%= colours[s] || '' %>"><%= h.STATUS_LABEL[s] || s %></span>

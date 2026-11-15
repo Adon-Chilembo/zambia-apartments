@@ -1,0 +1,27 @@
+<%- include('partials/header') %>
+<div class="auth card pad">
+  <h1>Create an account</h1>
+  <% if (locals.error) { %><div class="flash error"><%= error %></div><% } %>
+  <form method="post" action="/register">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <input type="hidden" name="next" value="<%= next %>">
+    <div class="role-pick">
+      <label><input type="radio" name="role" value="tenant" <%= form.role !== 'landlord' ? 'checked' : '' %>><b>I'm a tenant</b><span class="tiny">Find a home, report issues, pay rent</span></label>
+      <label><input type="radio" name="role" value="landlord" <%= form.role === 'landlord' ? 'checked' : '' %>><b>I'm a landlord</b><span class="tiny">List apartments, manage tenants</span></label>
+    </div>
+    <div class="field"><label for="name">Full name</label><input type="text" id="name" name="name" value="<%= form.name || '' %>" required></div>
+    <div class="field"><label for="email">Email</label><input type="email" id="email" name="email" value="<%= form.email || '' %>" required></div>
+    <div class="field"><label for="phone">Phone number</label><input type="tel" id="phone" name="phone" value="<%= form.phone || '' %>" placeholder="097 123 4567"></div>
+    <div class="field"><label for="password">Password</label><input type="password" id="password" name="password" minlength="8" required><span class="tiny">At least 8 characters</span></div>
+    <div class="field" id="code-field"><label for="code">Invite code <span class="tiny">(optional, from your landlord)</span></label><input type="text" id="code" name="code" value="<%= form.code || '' %>" placeholder="ABCD-1234"></div>
+    <button class="btn block">Create account</button>
+  </form>
+  <p class="small muted" style="margin-top:14px;text-align:center">Already registered? <a href="/login">Log in</a></p>
+</div>
+<script>
+  const codeField = document.getElementById('code-field');
+  const sync = () => { codeField.style.display = document.querySelector('input[name=role]:checked').value === 'tenant' ? '' : 'none'; };
+  document.querySelectorAll('input[name=role]').forEach(r => r.addEventListener('change', sync));
+  sync();
+</script>
+<%- include('partials/footer') %>

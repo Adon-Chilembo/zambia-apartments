@@ -1,0 +1,67 @@
+<%- include('partials/header') %>
+
+<section class="hero">
+  <h1>Find your next home in Zambia</h1>
+  <p>Browse apartments listed directly by landlords. Once you move in, report problems, suggest improvements and pay rent with Mobile Money, all in one place.</p>
+  <div class="stats">
+    <div><b><%= counts.total %></b><span>apartments available</span></div>
+    <div><b><%= counts.cities %></b><span>cities</span></div>
+    <div><b>MoMo</b><span>rent payments</span></div>
+  </div>
+</section>
+
+<form class="card filters" method="get" action="/">
+  <div>
+    <label for="q">Search</label>
+    <input type="text" id="q" name="q" value="<%= filters.q %>" placeholder="Kabulonga, furnished, solar backup…">
+  </div>
+  <div>
+    <label for="city">City</label>
+    <select id="city" name="city">
+      <option value="">All cities</option>
+      <% cities.forEach(c => { %><option <%= filters.city === c ? 'selected' : '' %>><%= c %></option><% }) %>
+    </select>
+  </div>
+  <div>
+    <label for="bedrooms">Bedrooms</label>
+    <select id="bedrooms" name="bedrooms">
+      <option value="">Any</option>
+      <% [1,2,3,4].forEach(n => { %><option value="<%= n %>" <%= String(filters.bedrooms) === String(n) ? 'selected' : '' %>><%= n %>+</option><% }) %>
+    </select>
+  </div>
+  <div>
+    <label for="max_rent">Max rent / month</label>
+    <select id="max_rent" name="max_rent">
+      <option value="">Any</option>
+      <% [2500, 5000, 8000, 12000, 20000].forEach(n => { %><option value="<%= n %>" <%= String(filters.max_rent) === String(n) ? 'selected' : '' %>><%= h.money(n).replace('.00','') %></option><% }) %>
+    </select>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn">Search</button>
+    <% if (filters.q || filters.city || filters.bedrooms || filters.max_rent) { %><a class="btn secondary" href="/">Clear</a><% } %>
+  </div>
+</form>
+
+<% if (!apartments.length) { %>
+  <div class="card empty">No apartments match your search. Try removing a filter.</div>
+<% } else { %>
+  <p class="muted small"><%= apartments.length %> <%= apartments.length === 1 ? 'apartment' : 'apartments' %> available</p>
+  <div class="listing-grid">
+    <% apartments.forEach(apt => { %>
+      <a class="card listing" href="/apartments/<%= apt.id %>">
+        <%- include('partials/apt-image', { apt }) %>
+        <div class="body">
+          <div class="price"><%= h.money(apt.rent_amount) %> <small>/ month</small></div>
+          <div class="title"><%= apt.title %></div>
+          <div class="muted small"><%= apt.neighbourhood %>, <%= apt.city %></div>
+          <div class="facts" style="margin-top:6px">
+            <span>🛏 <%= apt.bedrooms %> bed</span>
+            <span>🛁 <%= apt.bathrooms %> bath</span>
+          </div>
+        </div>
+      </a>
+    <% }) %>
+  </div>
+<% } %>
+
+<%- include('partials/footer') %>
