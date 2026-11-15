@@ -32,7 +32,7 @@ function apartmentFields(body) {
 
 const TENANT_ROWS = `
   SELECT a.id AS apartment_id, a.title, a.neighbourhood, a.city, a.rent_amount,
-         t.id AS tenancy_id, t.start_date,
+         t.id AS tenancy_id, t.start_date, t.occupants, t.household_note,
          u.id AS tenant_id, u.name, u.email, u.phone, u.occupation, u.emergency_contact,
          (SELECT COUNT(*) FROM issues i WHERE i.tenancy_id = t.id AND i.status != 'resolved') AS open_issues,
          (SELECT COUNT(*) FROM payments p WHERE p.tenancy_id = t.id AND p.status = 'success' AND p.period = ?) AS paid_this_month,
@@ -162,7 +162,7 @@ router.get('/apartments/:id', (req, res) => {
   const apartment = ownApartment(req, req.params.id);
   if (!apartment) return res.status(404).render('error', { title: 'Not found', message: 'Apartment not found.' });
   const tenant = get(
-    `SELECT t.id AS tenancy_id, t.start_date, u.id, u.name, u.email, u.phone, u.occupation, u.emergency_contact
+    `SELECT t.id AS tenancy_id, t.start_date, t.occupants, t.household_note, u.id, u.name, u.email, u.phone, u.occupation, u.emergency_contact
        FROM tenancies t JOIN users u ON u.id = t.tenant_id WHERE t.apartment_id = ? AND t.status = 'active'`,
     apartment.id
   );
@@ -260,7 +260,7 @@ router.post('/applications/:id/:decision', (req, res) => {
       run("UPDATE applications SET status = 'approved' WHERE id = ?", app.id);
       run("UPDATE applications SET status = 'rejected' WHERE apartment_id = ? AND status = 'pending'", app.apartment_id);
       run("UPDATE applications SET status = 'rejected' WHERE tenant_id = ? AND status = 'pending'", app.tenant_id);
-      run('INSERT INTO tenancies (apartment_id, tenant_id) VALUES (?, ?)', app.apartment_id, app.tenant_id);
+      run('INSERT INTO tenancies (apartment_id, tenant_id, occupants, household_note) VALUES (?, ?, ?, ?)', app.apartment_id, app.tenant_id, app.occupants, app.household_note);
       run("UPDATE apartments SET status = 'occupied' WHERE id = ?", app.apartment_id);
     });
     flash(req, 'success', `Application approved. The tenant is now connected to ${app.title}.`);

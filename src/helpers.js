@@ -1,8 +1,8 @@
 const { get } = require('./db');
 
-/** Zambian Kwacha, e.g. "K 4,500.00" */
+/** Zambian Kwacha, e.g. "K 4,500.00" (non-breaking space so it never wraps) */
 const money = (n) =>
-  'K ' + Number(n || 0).toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  'K ' +Number(n || 0).toLocaleString('en-ZM', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const NETWORKS = {
   mtn: 'MTN MoMo',
@@ -81,7 +81,8 @@ function requireRole(role) {
 /** The tenant's active tenancy joined with apartment and landlord, or undefined. */
 function activeTenancy(tenantId) {
   return get(
-    `SELECT t.id AS tenancy_id, t.start_date, a.*, l.name AS landlord_name, l.email AS landlord_email, l.phone AS landlord_phone
+    `SELECT t.id AS tenancy_id, t.start_date, t.occupants, t.household_note,
+            a.*, l.name AS landlord_name, l.email AS landlord_email, l.phone AS landlord_phone
        FROM tenancies t
        JOIN apartments a ON a.id = t.apartment_id
        JOIN users l ON l.id = a.landlord_id
@@ -89,6 +90,20 @@ function activeTenancy(tenantId) {
       ORDER BY t.id DESC LIMIT 1`,
     tenantId
   );
+}
+
+const MAX_OCCUPANTS = 20;
+
+/** Parse a household size from a form: a whole number 1–20, or null if invalid. */
+function parseOccupants(value) {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 1 && n <= MAX_OCCUPANTS ? n : null;
+}
+
+/** 1 -> "1 person", 3 -> "3 people", null -> "Not given" */
+function people(n) {
+  if (!n) return 'Not given';
+  return n === 1 ? '1 person' : `${n} people`;
 }
 
 const ISSUE_CATEGORIES = ['Plumbing', 'Electrical', 'Power / load-shedding', 'Water supply', 'Security', 'Pests', 'Appliances', 'Cleaning', 'Structure / roof', 'Noise / neighbours', 'Other'];
@@ -118,6 +133,9 @@ module.exports = {
   flash,
   requireRole,
   activeTenancy,
+  MAX_OCCUPANTS,
+  parseOccupants,
+  people,
   ISSUE_CATEGORIES,
   STATUS_LABEL,
 };

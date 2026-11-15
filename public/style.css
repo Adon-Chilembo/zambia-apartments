@@ -92,6 +92,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand); out
 .card-body { padding: 16px 20px; }
 .stack > * + * { margin-top: 18px; }
 .grid-2 { display: grid; gap: 18px; grid-template-columns: 1fr; }
+.grid-2 > * { min-width: 0; }
 @media (min-width: 900px) { .grid-2 { grid-template-columns: 1.4fr 1fr; } .grid-2.even { grid-template-columns: 1fr 1fr; } }
 main { padding: 28px 0 60px; }
 .page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
@@ -157,7 +158,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-sp
 .list { list-style: none; margin: 0; padding: 0; }
 .list > li { padding: 13px 20px; border-bottom: 1px solid var(--line); }
 .list > li:last-child { border-bottom: 0; }
-.li-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.li-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; }
 
 .person { display: flex; gap: 12px; align-items: center; }
 .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; font-weight: 700; flex: none; }
@@ -167,7 +168,7 @@ dl.details dt { color: var(--ink-3); font-size: 0.86rem; }
 dl.details dd { margin: 0; font-weight: 500; }
 
 /* Tabs */
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; overflow-x: auto; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
 .tabs a { padding: 10px 14px; color: var(--ink-2); font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
 .tabs a:hover { text-decoration: none; color: var(--ink); }
 .tabs a.active { color: var(--brand); border-color: var(--brand); }

@@ -43,6 +43,7 @@
             <div>
               <b><%= a.name %></b> <span class="small muted">applied for <a href="/landlord/apartments/<%= a.apartment_id %>"><%= a.title %></a></span>
               <div class="tiny"><%= a.email %><%= a.phone ? ' · ' + a.phone : '' %><%= a.occupation ? ' · ' + a.occupation : '' %> · <%= h.date(a.created_at) %></div>
+              <div class="small" style="margin-top:2px">👥 <b><%= h.people(a.occupants) %></b><%= a.household_note ? ' · ' + a.household_note : '' %></div>
               <% if (a.message) { %><div class="response">“<%= a.message %>”</div><% } %>
             </div>
           </div>
@@ -88,7 +89,7 @@
             <li class="li-row">
               <div class="person">
                 <div class="avatar"><%= h.initials(t.name) %></div>
-                <div><b><%= t.name %></b><div class="tiny"><%= t.title %> · <%= h.money(t.rent_amount) %>/month</div></div>
+                <div><b><%= t.name %></b><div class="tiny"><%= t.title %> · <%= h.money(t.rent_amount) %>/month · 👥 <%= h.people(t.occupants) %></div></div>
               </div>
               <% if (t.paid_this_month) { %><span class="badge green">Paid</span><% } else { %><span class="badge red">Not paid</span><% } %>
             </li>

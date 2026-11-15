@@ -1,0 +1,9 @@
+<%# Household size inputs. Expects: occupants (number or ''), note (string) %>
+<div class="field">
+  <label for="occupants">How many people will live here? <span class="tiny">(including you)</span></label>
+  <input type="number" id="occupants" name="occupants" min="1" max="<%= h.MAX_OCCUPANTS %>" step="1" required value="<%= occupants || '' %>" placeholder="e.g. 3" style="max-width:140px">
+</div>
+<div class="field">
+  <label for="household_note">Who lives with you? <span class="tiny">(optional)</span></label>
+  <textarea id="household_note" name="household_note" rows="2" maxlength="500" placeholder="e.g. My husband and our two children (ages 4 and 7)"><%= note || '' %></textarea>
+</div>

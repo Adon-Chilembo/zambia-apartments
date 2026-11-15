@@ -101,6 +101,17 @@ CREATE TABLE IF NOT EXISTS payments (
 );
 `);
 
+// Add columns introduced after the first release, so existing databases keep their data.
+function addColumn(table, column, definition) {
+  const exists = db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === column);
+  if (!exists) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+// Household: how many people live in the apartment, and an optional note on who they are.
+addColumn('tenancies', 'occupants', 'INTEGER');
+addColumn('tenancies', 'household_note', 'TEXT');
+addColumn('applications', 'occupants', 'INTEGER');
+addColumn('applications', 'household_note', 'TEXT');
+
 /** Run several statements atomically. */
 function transaction(fn) {
   db.exec('BEGIN');

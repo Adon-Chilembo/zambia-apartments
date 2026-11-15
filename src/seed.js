@@ -68,13 +68,16 @@ transaction(() => {
     'Generator, Staff quarters, Large yard, Electric fence');
 
   // Active tenancies
-  const tenancy = (aptId, tenantId, start) => {
+  const tenancy = (aptId, tenantId, start, occupants = null, note = null) => {
     run("UPDATE apartments SET status = 'occupied' WHERE id = ?", aptId);
-    return Number(run('INSERT INTO tenancies (apartment_id, tenant_id, start_date) VALUES (?, ?, ?)', aptId, tenantId, start).lastInsertRowid);
+    return Number(
+      run('INSERT INTO tenancies (apartment_id, tenant_id, start_date, occupants, household_note) VALUES (?, ?, ?, ?, ?)',
+        aptId, tenantId, start, occupants, note).lastInsertRowid
+    );
   };
-  const t1 = tenancy(a1, natasha, '2026-03-01');
-  const t2 = tenancy(a4, mutale, '2026-06-01');
-  const t3 = tenancy(a6, bupe, '2026-01-15');
+  const t1 = tenancy(a1, natasha, '2026-03-01', 2, 'My younger sister, who is studying at UNZA');
+  const t2 = tenancy(a4, mutale, '2026-06-01', 5, 'My wife, our two children (ages 3 and 6) and my mother');
+  const t3 = tenancy(a6, bupe, '2026-01-15'); // household not given yet, to show the reminder
 
   // Payments
   let n = 0;
@@ -101,8 +104,9 @@ transaction(() => {
   issue(t3, a6, bupe, 'improvement', 'Other', 'Mosquito nets for the windows', 'Would it be possible to fit mosquito netting to the bedroom windows before the rainy season?', 'low', 'open', null, 6);
 
   // A pending application and an unused invite
-  run('INSERT INTO applications (apartment_id, tenant_id, message, created_at) VALUES (?, ?, ?, ?)', a2, kondwani,
-    'Hello, I have just started a new job in town and would like to move in at the start of next month. I am quiet and tidy.', daysAgo(1));
+  run('INSERT INTO applications (apartment_id, tenant_id, message, occupants, household_note, created_at) VALUES (?, ?, ?, ?, ?, ?)', a2, kondwani,
+    'Hello, I have just started a new job in town and would like to move in at the start of next month. I am quiet and tidy.',
+    1, 'Just me', daysAgo(1));
   run("INSERT INTO invites (code, apartment_id, landlord_id, tenant_name) VALUES ('LSK1-2026', ?, ?, 'New tenant')", a2, mwila);
   void a3; void a5; void a7; void a8; void a9;
 });

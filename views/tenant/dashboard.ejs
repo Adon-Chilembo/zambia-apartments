@@ -16,10 +16,17 @@
   <a href="/tenant" class="<%= tab === 'overview' ? 'active' : '' %>">Overview</a>
   <a href="/tenant?tab=issues" class="<%= tab === 'issues' ? 'active' : '' %>">Problems &amp; suggestions <span class="count"><%= openIssues.length %></span></a>
   <a href="/tenant?tab=payments" class="<%= tab === 'payments' ? 'active' : '' %>">Payments</a>
+  <a href="/tenant?tab=household" class="<%= tab === 'household' ? 'active' : '' %>">Household</a>
   <a href="/tenant?tab=profile" class="<%= tab === 'profile' ? 'active' : '' %>">My details</a>
 </nav>
 
 <% if (tab === 'overview') { %>
+  <% if (!home.occupants) { %>
+    <div class="callout" style="margin-bottom:18px">
+      <b>Tell your landlord who lives here.</b> Please add how many people live in the apartment.
+      <a href="/tenant?tab=household">Add household</a>
+    </div>
+  <% } %>
   <div class="stat-row">
     <div class="card stat">
       <div class="label">Rent for <%= h.period(thisMonth) %></div>
@@ -64,6 +71,7 @@
         <dt>Email</dt><dd><a href="mailto:<%= home.landlord_email %>"><%= home.landlord_email %></a></dd>
         <dt>Rent</dt><dd><%= h.money(home.rent_amount) %> / month</dd>
         <dt>Home</dt><dd><%= home.bedrooms %> bed · <%= home.bathrooms %> bath</dd>
+        <dt>Household</dt><dd><%= h.people(home.occupants) %> · <a href="/tenant?tab=household">edit</a></dd>
       </dl>
     </div>
   </div>
@@ -169,6 +177,21 @@
         <p class="tiny" style="margin-top:10px">Secured by Flutterwave.<% if (paymentKeyMode === 'test') { %> <span class="badge gold">Test mode: no real money is charged</span><% } %></p>
       <% } %>
     </div>
+  </div>
+<% } %>
+
+<% if (tab === 'household') { %>
+  <div class="card pad" style="max-width:620px">
+    <h2>Household</h2>
+    <p class="muted small">Tell your landlord how many people live in the apartment. Update this whenever someone moves in or out.</p>
+    <% if (home.occupants) { %>
+      <p><b><%= h.people(home.occupants) %></b> currently registered<% if (home.household_note) { %>: <%= home.household_note %><% } %></p>
+    <% } %>
+    <form method="post" action="/tenant/household">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <%- include('../partials/household-fields', { occupants: home.occupants, note: home.household_note }) %>
+      <button class="btn">Save household</button>
+    </form>
   </div>
 <% } %>
 

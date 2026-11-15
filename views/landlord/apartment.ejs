@@ -31,6 +31,7 @@
         <dl class="details" style="margin-top:18px">
           <dt>Phone</dt><dd><% if (tenant.phone) { %><a href="tel:<%= tenant.phone %>"><%= tenant.phone %></a><% } else { %>—<% } %></dd>
           <dt>Email</dt><dd><a href="mailto:<%= tenant.email %>"><%= tenant.email %></a></dd>
+          <dt>Household</dt><dd><% if (tenant.occupants) { %><b><%= h.people(tenant.occupants) %></b><% if (tenant.household_note) { %><div class="tiny"><%= tenant.household_note %></div><% } %><% } else { %><span class="muted">Not given yet</span><% } %></dd>
           <dt>Occupation</dt><dd><%= tenant.occupation || '—' %></dd>
           <dt>Emergency contact</dt><dd><%= tenant.emergency_contact || '—' %></dd>
           <dt>Open issues</dt><dd><a href="<%= base %>?tab=issues"><%= openIssues %></a></dd>
@@ -56,7 +57,7 @@
               <li>
                 <div class="li-row">
                   <div class="person"><div class="avatar"><%= h.initials(ap.name) %></div>
-                    <div><b><%= ap.name %></b><div class="tiny"><%= ap.email %><%= ap.phone ? ' · ' + ap.phone : '' %><%= ap.occupation ? ' · ' + ap.occupation : '' %></div></div>
+                    <div><b><%= ap.name %></b><div class="tiny"><%= ap.email %><%= ap.phone ? ' · ' + ap.phone : '' %><%= ap.occupation ? ' · ' + ap.occupation : '' %></div><div class="small" style="margin-top:2px">👥 <b><%= h.people(ap.occupants) %></b><%= ap.household_note ? ' · ' + ap.household_note : '' %></div></div>
                   </div>
                   <div style="display:flex;gap:6px">
                     <form class="inline-form" method="post" action="/landlord/applications/<%= ap.id %>/approve"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="back" value="apartment"><button class="btn sm">Approve</button></form>

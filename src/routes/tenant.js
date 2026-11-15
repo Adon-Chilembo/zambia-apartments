@@ -1,6 +1,6 @@
 const express = require('express');
 const { get, all, run, transaction } = require('../db');
-const { flash, requireRole, activeTenancy, currentPeriod, periodOptions, ISSUE_CATEGORIES } = require('../helpers');
+const { flash, requireRole, activeTenancy, currentPeriod, periodOptions, parseOccupants, ISSUE_CATEGORIES } = require('../helpers');
 const payments = require('../payments');
 
 const router = express.Router();
@@ -39,7 +39,7 @@ router.get('/', (req, res) => {
     paidPeriods: [...paidPeriods],
     categories: ISSUE_CATEGORIES,
     networks: payments.NETWORKS,
-    tab: ['issues', 'payments', 'profile'].includes(req.query.tab) ? req.query.tab : 'overview',
+    tab: ['issues', 'payments', 'household', 'profile'].includes(req.query.tab) ? req.query.tab : 'overview',
   });
 });
 
@@ -61,8 +61,20 @@ router.post('/join', (req, res) => {
     flash(req, 'error', 'That apartment already has a tenant. Ask your landlord for a new code.');
     return res.redirect('/tenant');
   }
+  const occupants = parseOccupants(req.body.occupants);
+  if (!occupants) {
+    flash(req, 'error', 'Enter how many people will live in the apartment (including you).');
+    return res.redirect('/tenant');
+  }
+  const householdNote = String(req.body.household_note || '').trim().slice(0, 500);
   transaction(() => {
-    run('INSERT INTO tenancies (apartment_id, tenant_id) VALUES (?, ?)', invite.apartment_id, req.user.id);
+    run(
+      'INSERT INTO tenancies (apartment_id, tenant_id, occupants, household_note) VALUES (?, ?, ?, ?)',
+      invite.apartment_id,
+      req.user.id,
+      occupants,
+      householdNote
+    );
     run("UPDATE apartments SET status = 'occupied' WHERE id = ?", invite.apartment_id);
     run("UPDATE invites SET used_by = ?, used_at = datetime('now') WHERE id = ?", req.user.id, invite.id);
     run("UPDATE applications SET status = 'rejected' WHERE apartment_id = ? AND status = 'pending'", invite.apartment_id);
@@ -71,6 +83,24 @@ router.post('/join', (req, res) => {
   delete req.session.pendingInvite;
   flash(req, 'success', `You're now connected to ${invite.title}.`);
   res.redirect('/tenant');
+});
+
+router.post('/household', (req, res) => {
+  const home = activeTenancy(req.user.id);
+  if (!home) return res.redirect('/tenant');
+  const occupants = parseOccupants(req.body.occupants);
+  if (!occupants) {
+    flash(req, 'error', 'Enter a number of people between 1 and 20 (including you).');
+    return res.redirect('/tenant?tab=household');
+  }
+  run(
+    'UPDATE tenancies SET occupants = ?, household_note = ? WHERE id = ?',
+    occupants,
+    String(req.body.household_note || '').trim().slice(0, 500),
+    home.tenancy_id
+  );
+  flash(req, 'success', 'Household updated. Your landlord can see it now.');
+  res.redirect('/tenant?tab=household');
 });
 
 router.post('/applications/:id/withdraw', (req, res) => {

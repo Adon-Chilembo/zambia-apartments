@@ -1,6 +1,6 @@
 const express = require('express');
 const { get, all, run } = require('../db');
-const { flash, activeTenancy } = require('../helpers');
+const { flash, activeTenancy, parseOccupants } = require('../helpers');
 
 const router = express.Router();
 
@@ -70,6 +70,11 @@ router.post('/apartments/:id/apply', (req, res) => {
     flash(req, 'error', 'You are already connected to an apartment.');
     return res.redirect('/tenant');
   }
+  const occupants = parseOccupants(req.body.occupants);
+  if (!occupants) {
+    flash(req, 'error', 'Enter how many people will live in the apartment (including you).');
+    return res.redirect('/apartments/' + apartment.id);
+  }
   const existing = get(
     "SELECT id FROM applications WHERE apartment_id = ? AND tenant_id = ? AND status = 'pending'",
     apartment.id,
@@ -77,10 +82,12 @@ router.post('/apartments/:id/apply', (req, res) => {
   );
   if (!existing) {
     run(
-      'INSERT INTO applications (apartment_id, tenant_id, message) VALUES (?, ?, ?)',
+      'INSERT INTO applications (apartment_id, tenant_id, message, occupants, household_note) VALUES (?, ?, ?, ?, ?)',
       apartment.id,
       req.user.id,
-      String(req.body.message || '').slice(0, 1000)
+      String(req.body.message || '').slice(0, 1000),
+      occupants,
+      String(req.body.household_note || '').trim().slice(0, 500)
     );
   }
   flash(req, 'success', `Application sent for ${apartment.title}. The landlord will review it.`);

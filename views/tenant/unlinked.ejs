@@ -14,6 +14,7 @@
     <form method="post" action="/tenant/join">
       <input type="hidden" name="_csrf" value="<%= csrf %>">
       <div class="field"><label for="code">Invite code</label><input type="text" id="code" name="code" value="<%= code %>" placeholder="ABCD-1234" required style="text-transform:uppercase;letter-spacing:.06em"></div>
+      <%- include('../partials/household-fields', { occupants: '', note: '' }) %>
       <button class="btn">Connect to my apartment</button>
     </form>
   </div>
@@ -34,7 +35,7 @@
         <li class="li-row">
           <div>
             <a href="/apartments/<%= a.apartment_id %>"><b><%= a.title %></b></a>
-            <div class="small muted"><%= a.neighbourhood %>, <%= a.city %> · <%= h.money(a.rent_amount) %>/month · applied <%= h.date(a.created_at) %></div>
+            <div class="small muted"><%= a.neighbourhood %>, <%= a.city %> · <%= h.money(a.rent_amount) %>/month · <%= h.people(a.occupants) %> · applied <%= h.date(a.created_at) %></div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <%- include('../partials/status', { s: a.status }) %>

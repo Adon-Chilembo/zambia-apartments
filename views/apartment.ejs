@@ -38,9 +38,10 @@
       <% if (applyState === 'can_apply') { %>
         <form method="post" action="/apartments/<%= apartment.id %>/apply">
           <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <%- include('partials/household-fields', { occupants: '', note: '' }) %>
           <div class="field">
             <label for="message">Message to the landlord</label>
-            <textarea id="message" name="message" placeholder="Introduce yourself: who will live here, when you want to move in…"></textarea>
+            <textarea id="message" name="message" placeholder="Introduce yourself, and say when you'd like to move in…"></textarea>
           </div>
           <button class="btn block">Apply for this apartment</button>
         </form>
