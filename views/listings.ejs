@@ -80,16 +80,20 @@
   <!-- Listings -->
   <section class="section" id="listings">
     <div class="section-head">
-      <span class="eyebrow"><%= filtered ? 'Search results' : 'Available now' %></span>
-      <h2><%= apartments.length %> <%= apartments.length === 1 ? 'apartment' : 'apartments' %><%= filtered ? ' match your search' : ' ready to move in' %></h2>
+      <span class="eyebrow"><%= filtered ? 'Search results' : 'All apartments' %></span>
+      <h2><%= apartments.length %> <%= apartments.length === 1 ? 'apartment' : 'apartments' %><%= filtered ? ' match your search' : ' across Zambia' %></h2>
+      <div class="vacancy-summary">
+        <span class="badge green"><%= vacantCount %> vacant</span>
+        <span class="badge gold"><%= occupiedCount %> occupied</span>
+      </div>
     </div>
     <% if (!apartments.length) { %>
       <div class="card empty">No apartments match your search. Try removing a filter.</div>
     <% } else { %>
       <div class="listing-grid">
         <% apartments.forEach(apt => { %>
-          <a class="card listing" href="/apartments/<%= apt.id %>">
-            <%- include('partials/apt-image', { apt, showPrice: true }) %>
+          <a class="card listing <%= apt.status === 'occupied' ? 'is-occupied' : '' %>" href="/apartments/<%= apt.id %>">
+            <%- include('partials/apt-image', { apt, showPrice: true, showVacancy: true }) %>
             <div class="body">
               <div class="title"><%= apt.title %></div>
               <div class="muted small">📍 <%= apt.neighbourhood %>, <%= apt.city %></div>
@@ -97,12 +101,7 @@
                 <span>🛏 <%= apt.bedrooms %> bed</span>
                 <span>🛁 <%= apt.bathrooms %> bath</span>
               </div>
-              <% if (apt.serviceList.length) { %>
-                <div class="svc-icons">
-                  <% apt.serviceList.slice(0, 6).forEach(s => { %><span title="<%= s.label %>"><%- svc.serviceIcon(s) %></span><% }) %>
-                  <% if (apt.serviceList.length > 6) { %><span class="more">+<%= apt.serviceList.length - 6 %></span><% } %>
-                </div>
-              <% } %>
+              <% if (apt.status === 'occupied') { %><div class="occupied-note">🔒 Occupied, not available right now</div><% } %>
             </div>
           </a>
         <% }) %>

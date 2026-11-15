@@ -7,7 +7,9 @@
   <% } else { %>
     <div class="ph"><%- include('apt-illustration', { apt }) %></div>
   <% } %>
-  <% if (locals.showStatus) { %>
+  <% if (locals.showVacancy) { %>
+    <span class="badge badge-on <%= apt.status === 'available' ? 'green' : 'gold' %>"><%= apt.status === 'available' ? 'Vacant' : 'Occupied' %></span>
+  <% } else if (locals.showStatus) { %>
     <span class="badge badge-on <%= apt.status === 'available' ? 'green' : 'gold' %>"><%= h.STATUS_LABEL[apt.status] %></span>
   <% } %>
   <% if (locals.showPrice) { %>

@@ -269,6 +269,10 @@ main.bare { padding-top: 0; }
 .svc-icons span svg { width: 17px; height: 17px; }
 .svc-icons .more { width: auto; padding: 0 9px; font-size: 0.78rem; font-weight: 700; color: var(--ink-2); }
 .listing .area { font-size: 0.92rem; color: var(--ink-2); }
+.vacancy-summary { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+.vacancy-summary .badge { font-size: 0.85rem; padding: 5px 12px; }
+.listing.is-occupied .apt-img img, .listing.is-occupied .apt-img .ph { filter: saturate(0.55) brightness(0.8); }
+.listing.is-occupied .occupied-note { font-size: 0.82rem; color: var(--gold-ink); font-weight: 600; margin-top: 6px; }
 .listing .area b { color: var(--ink); }
 .tenant-card:hover { transform: none; }
 .tenant-home { display: block; aspect-ratio: 16 / 8; }

@@ -11,7 +11,8 @@ const PHOTO_COUNT_SQL = '(SELECT COUNT(*) FROM apartment_photos p WHERE p.apartm
 
 router.get('/', (req, res) => {
   const { q = '', city = '', bedrooms = '', max_rent = '' } = req.query;
-  const where = ["a.status = 'available'"];
+  // Show every apartment, vacant and occupied; vacant ones come first.
+  const where = ['1 = 1'];
   const params = [];
   if (q) {
     where.push('(a.title LIKE ? OR a.neighbourhood LIKE ? OR a.description LIKE ?)');
@@ -32,10 +33,10 @@ router.get('/', (req, res) => {
   const apartments = all(
     `SELECT a.*, u.name AS landlord_name, ${COVER_SQL}, ${PHOTO_COUNT_SQL}
        FROM apartments a JOIN users u ON u.id = a.landlord_id
-      WHERE ${where.join(' AND ')} ORDER BY a.created_at DESC, a.id DESC`,
+      WHERE ${where.join(' AND ')} ORDER BY (a.status = 'available') DESC, a.created_at DESC, a.id DESC`,
     ...params
   ).map((a) => ({ ...a, serviceList: parseServices(a.services) }));
-  const cities = all("SELECT DISTINCT city FROM apartments WHERE status = 'available' ORDER BY city").map((r) => r.city);
+  const cities = all('SELECT DISTINCT city FROM apartments ORDER BY city').map((r) => r.city);
   const counts = get(
     `SELECT COUNT(*) AS total, COUNT(DISTINCT city) AS cities, COUNT(DISTINCT landlord_id) AS landlords,
             MIN(rent_amount) AS from_rent
@@ -50,6 +51,8 @@ router.get('/', (req, res) => {
   const popularServices = SERVICES.filter((s) => tally[s.key]).sort((a, b) => tally[b.key] - tally[a.key]).slice(0, 8);
 
   const filtered = Boolean(q || city || bedrooms || max_rent);
+  const vacantCount = apartments.filter((a) => a.status === 'available').length;
+  const occupiedCount = apartments.length - vacantCount;
   res.render('listings', {
     title: 'Find your next home in Zambia',
     bare: true,
@@ -57,6 +60,8 @@ router.get('/', (req, res) => {
     cities,
     counts,
     popularServices,
+    vacantCount,
+    occupiedCount,
     filtered,
     filters: { q, city, bedrooms, max_rent },
   });
