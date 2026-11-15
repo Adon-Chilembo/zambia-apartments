@@ -2,6 +2,8 @@ const crypto = require('node:crypto');
 const express = require('express');
 const { get, all, run, transaction } = require('../db');
 const { flash, requireRole, currentPeriod } = require('../helpers');
+const { cleanServices } = require('../services');
+const uploads = require('../uploads');
 
 const router = express.Router();
 router.use(requireRole('landlord'));
@@ -26,12 +28,14 @@ function apartmentFields(body) {
     rent_amount: Math.max(0, Number(body.rent_amount) || 0),
     description: String(body.description || '').slice(0, 4000),
     amenities: String(body.amenities || '').slice(0, 500),
-    image_url: /^https?:\/\//.test(String(body.image_url || '')) ? String(body.image_url).slice(0, 500) : '',
+    services: cleanServices(body.services),
+    address: String(body.address || '').trim().slice(0, 200),
   };
 }
 
 const TENANT_ROWS = `
-  SELECT a.id AS apartment_id, a.title, a.neighbourhood, a.city, a.rent_amount,
+  SELECT a.id AS apartment_id, a.title, a.neighbourhood, a.city, a.rent_amount, a.address, a.bedrooms, a.bathrooms,
+         (SELECT filename FROM apartment_photos p WHERE p.apartment_id = a.id ORDER BY sort_order, id LIMIT 1) AS cover,
          t.id AS tenancy_id, t.start_date, t.occupants, t.household_note,
          u.id AS tenant_id, u.name, u.email, u.phone, u.occupation, u.emergency_contact,
          (SELECT COUNT(*) FROM issues i WHERE i.tenancy_id = t.id AND i.status != 'resolved') AS open_issues,
@@ -48,10 +52,17 @@ router.get('/', (req, res) => {
   const month = currentPeriod();
   const apartments = all(
     `SELECT a.*,
-            (SELECT u.name FROM tenancies t JOIN users u ON u.id = t.tenant_id WHERE t.apartment_id = a.id AND t.status = 'active') AS tenant_name,
+            u.name AS tenant_name, t.occupants AS tenant_occupants, t.start_date AS tenant_since,
+            (SELECT COUNT(*) FROM payments p WHERE p.tenancy_id = t.id AND p.status = 'success' AND p.period = ?) AS paid_this_month,
             (SELECT COUNT(*) FROM issues i WHERE i.apartment_id = a.id AND i.status != 'resolved') AS open_issues,
-            (SELECT COUNT(*) FROM applications ap WHERE ap.apartment_id = a.id AND ap.status = 'pending') AS pending_apps
-       FROM apartments a WHERE a.landlord_id = ? ORDER BY a.status DESC, a.title`,
+            (SELECT COUNT(*) FROM applications ap WHERE ap.apartment_id = a.id AND ap.status = 'pending') AS pending_apps,
+            (SELECT COUNT(*) FROM apartment_photos p WHERE p.apartment_id = a.id) AS photo_count,
+            (SELECT filename FROM apartment_photos p WHERE p.apartment_id = a.id ORDER BY sort_order, id LIMIT 1) AS cover
+       FROM apartments a
+       LEFT JOIN tenancies t ON t.apartment_id = a.id AND t.status = 'active'
+       LEFT JOIN users u ON u.id = t.tenant_id
+      WHERE a.landlord_id = ? ORDER BY a.status DESC, a.title`,
+    month,
     lid
   );
   const tenants = all(TENANT_ROWS + ' ORDER BY u.name', month, lid);
@@ -150,12 +161,12 @@ router.post('/apartments', (req, res) => {
     });
   }
   const r = run(
-    `INSERT INTO apartments (landlord_id, title, neighbourhood, city, bedrooms, bathrooms, rent_amount, description, amenities, image_url)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    req.user.id, f.title, f.neighbourhood, f.city, f.bedrooms, f.bathrooms, f.rent_amount, f.description, f.amenities, f.image_url
+    `INSERT INTO apartments (landlord_id, title, neighbourhood, city, bedrooms, bathrooms, rent_amount, description, amenities, services, address)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    req.user.id, f.title, f.neighbourhood, f.city, f.bedrooms, f.bathrooms, f.rent_amount, f.description, f.amenities, f.services, f.address
   );
-  flash(req, 'success', 'Apartment listed. It now shows on the public listings page.');
-  res.redirect('/landlord/apartments/' + r.lastInsertRowid);
+  flash(req, 'success', 'Apartment listed. Now add photos so tenants can see the place.');
+  res.redirect('/landlord/apartments/' + r.lastInsertRowid + '?tab=photos');
 });
 
 router.get('/apartments/:id', (req, res) => {
@@ -178,7 +189,8 @@ router.get('/apartments/:id', (req, res) => {
     `SELECT t.*, u.name FROM tenancies t JOIN users u ON u.id = t.tenant_id WHERE t.apartment_id = ? AND t.status = 'ended' ORDER BY t.end_date DESC`,
     apartment.id
   );
-  const tab = ['tenant', 'issues', 'payments', 'edit'].includes(req.query.tab) ? req.query.tab : 'tenant';
+  const photos = all('SELECT * FROM apartment_photos WHERE apartment_id = ? ORDER BY sort_order, id', apartment.id);
+  const tab = ['tenant', 'issues', 'payments', 'photos', 'edit'].includes(req.query.tab) ? req.query.tab : 'tenant';
   res.render('landlord/apartment', {
     title: apartment.title,
     apartment,
@@ -188,6 +200,8 @@ router.get('/apartments/:id', (req, res) => {
     applications,
     invites,
     pastTenants,
+    photos,
+    uploadLimits: uploads,
     tab,
     paidThisMonth: tenant && paymentRows.some((p) => p.tenant_id === tenant.id && p.period === currentPeriod() && p.status === 'success'),
   });
@@ -202,8 +216,8 @@ router.post('/apartments/:id', (req, res) => {
     return res.redirect(`/landlord/apartments/${apartment.id}?tab=edit`);
   }
   run(
-    `UPDATE apartments SET title=?, neighbourhood=?, city=?, bedrooms=?, bathrooms=?, rent_amount=?, description=?, amenities=?, image_url=? WHERE id=?`,
-    f.title, f.neighbourhood, f.city, f.bedrooms, f.bathrooms, f.rent_amount, f.description, f.amenities, f.image_url, apartment.id
+    `UPDATE apartments SET title=?, neighbourhood=?, city=?, bedrooms=?, bathrooms=?, rent_amount=?, description=?, amenities=?, services=?, address=? WHERE id=?`,
+    f.title, f.neighbourhood, f.city, f.bedrooms, f.bathrooms, f.rent_amount, f.description, f.amenities, f.services, f.address, apartment.id
   );
   flash(req, 'success', 'Apartment updated.');
   res.redirect(`/landlord/apartments/${apartment.id}?tab=edit`);
@@ -303,6 +317,92 @@ router.post('/tenancies/:id/end', (req, res) => {
   });
   flash(req, 'info', 'Tenancy ended. The apartment is listed as available again.');
   res.redirect(`/landlord/apartments/${t.apartment_id}`);
+});
+
+// ---- Photos -------------------------------------------------------------
+
+/** Load a photo only if its apartment belongs to the logged-in landlord. */
+function ownPhoto(req, id) {
+  return get(
+    `SELECT p.* FROM apartment_photos p JOIN apartments a ON a.id = p.apartment_id WHERE p.id = ? AND a.landlord_id = ?`,
+    id,
+    req.user.id
+  );
+}
+
+const photosTab = (aptId) => `/landlord/apartments/${aptId}?tab=photos`;
+
+// Check ownership before multer writes anything to disk.
+function requireOwnApartment(req, res, next) {
+  req.apartment = ownApartment(req, req.params.id);
+  if (!req.apartment) return res.status(404).render('error', { title: 'Not found', message: 'Apartment not found.' });
+  next();
+}
+
+router.post('/apartments/:id/photos', requireOwnApartment, uploads.upload.array('photos', uploads.MAX_FILES_PER_UPLOAD), (req, res) => {
+  const apt = req.apartment;
+  const files = req.files || [];
+  const good = files.filter((file) => uploads.isRealImage(file.path));
+  files.filter((file) => !good.includes(file)).forEach((file) => uploads.removeFile(file.filename));
+
+  const existing = get('SELECT COUNT(*) AS n, COALESCE(MAX(sort_order), -1) AS last FROM apartment_photos WHERE apartment_id = ?', apt.id);
+  const room = Math.max(0, uploads.MAX_PHOTOS_PER_APARTMENT - existing.n);
+  const kept = good.slice(0, room);
+  good.slice(room).forEach((file) => uploads.removeFile(file.filename));
+
+  const caption = String(req.body.caption || '').trim().slice(0, 120);
+  transaction(() => {
+    kept.forEach((file, i) => {
+      run('INSERT INTO apartment_photos (apartment_id, filename, caption, sort_order) VALUES (?, ?, ?, ?)', apt.id, file.filename, caption, existing.last + 1 + i);
+    });
+  });
+
+  if (!files.length) flash(req, 'error', 'Choose at least one photo (JPG, PNG or WebP).');
+  else if (!kept.length) flash(req, 'error', good.length ? `This apartment already has the maximum of ${uploads.MAX_PHOTOS_PER_APARTMENT} photos.` : 'Those files are not valid JPG, PNG or WebP images.');
+  else {
+    const skipped = files.length - kept.length;
+    flash(req, 'success', `${kept.length} photo${kept.length === 1 ? '' : 's'} added.` + (skipped ? ` ${skipped} skipped (not a valid image, or over the limit).` : ''));
+  }
+  res.redirect(photosTab(apt.id));
+});
+
+router.post('/photos/:id/caption', (req, res) => {
+  const photo = ownPhoto(req, req.params.id);
+  if (!photo) return res.redirect('/landlord');
+  run('UPDATE apartment_photos SET caption = ? WHERE id = ?', String(req.body.caption || '').trim().slice(0, 120), photo.id);
+  flash(req, 'success', 'Caption saved.');
+  res.redirect(photosTab(photo.apartment_id));
+});
+
+router.post('/photos/:id/cover', (req, res) => {
+  const photo = ownPhoto(req, req.params.id);
+  if (!photo) return res.redirect('/landlord');
+  const min = get('SELECT MIN(sort_order) AS m FROM apartment_photos WHERE apartment_id = ?', photo.apartment_id).m;
+  run('UPDATE apartment_photos SET sort_order = ? WHERE id = ?', min - 1, photo.id);
+  flash(req, 'success', 'Cover photo updated. It now shows first on the listings.');
+  res.redirect(photosTab(photo.apartment_id));
+});
+
+router.post('/photos/:id/move', (req, res) => {
+  const photo = ownPhoto(req, req.params.id);
+  if (!photo) return res.redirect('/landlord');
+  const list = all('SELECT id FROM apartment_photos WHERE apartment_id = ? ORDER BY sort_order, id', photo.apartment_id).map((r) => r.id);
+  const i = list.indexOf(photo.id);
+  const j = req.body.direction === 'up' ? i - 1 : i + 1;
+  if (j >= 0 && j < list.length) {
+    [list[i], list[j]] = [list[j], list[i]];
+    transaction(() => list.forEach((id, order) => run('UPDATE apartment_photos SET sort_order = ? WHERE id = ?', order, id)));
+  }
+  res.redirect(photosTab(photo.apartment_id));
+});
+
+router.post('/photos/:id/delete', (req, res) => {
+  const photo = ownPhoto(req, req.params.id);
+  if (!photo) return res.redirect('/landlord');
+  run('DELETE FROM apartment_photos WHERE id = ?', photo.id);
+  uploads.removeFile(photo.filename);
+  flash(req, 'info', 'Photo removed.');
+  res.redirect(photosTab(photo.apartment_id));
 });
 
 module.exports = router;

@@ -4,13 +4,21 @@
   const issueRow = (i) => i;
 %>
 
-<div class="page-head">
-  <div>
-    <h1><%= home.title %></h1>
-    <p class="muted"><%= home.neighbourhood %>, <%= home.city %> · tenant since <%= h.date(home.start_date) %></p>
+<section class="house-head">
+  <div class="bgimg">
+    <% if (home.cover) { %><img src="/uploads/<%= home.cover %>" alt="<%= home.title %>">
+    <% } else { %><%- include('../partials/apt-illustration', { apt: home, idSuffix: 'home' }) %><% } %>
   </div>
-  <a class="btn gold" href="/tenant?tab=payments#pay">Pay rent</a>
-</div>
+  <div class="inner">
+    <div>
+      <span class="badge green">My home · since <%= h.date(home.start_date) %></span>
+      <h1><%= home.title %></h1>
+      <div class="area">📍 <%= home.neighbourhood %>, <%= home.city %><%= home.address ? ' · ' + home.address : '' %></div>
+      <div class="tiny" style="color:rgba(255,255,255,.8);margin-top:4px"><%= home.bedrooms %> bed · <%= home.bathrooms %> bath · <%= h.money(home.rent_amount) %>/month · <a style="color:#fff;text-decoration:underline" href="<%= h.mapLink(home) %>" target="_blank" rel="noopener">View on map ↗</a></div>
+    </div>
+    <a class="btn gold" href="/tenant?tab=payments#pay">Pay rent</a>
+  </div>
+</section>
 
 <nav class="tabs">
   <a href="/tenant" class="<%= tab === 'overview' ? 'active' : '' %>">Overview</a>

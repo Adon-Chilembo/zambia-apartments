@@ -57,30 +57,58 @@
   </div>
 <% } %>
 
+<% const rented = apartments.filter(a => a.status === 'occupied'); const vacant = apartments.filter(a => a.status !== 'occupied'); %>
+<section style="margin-bottom:26px">
+  <div class="page-head" style="margin-bottom:14px">
+    <div>
+      <span class="eyebrow">Your houses</span>
+      <h2 style="margin:0">Rented <span class="muted" style="font-weight:600">(<%= rented.length %>)</span> · Available <span class="muted" style="font-weight:600">(<%= vacant.length %>)</span></h2>
+    </div>
+  </div>
+  <% if (!apartments.length) { %>
+    <div class="card empty">You haven't listed any apartments yet. <a href="/landlord/apartments/new">Add your first one</a>.</div>
+  <% } else { %>
+    <div class="listing-grid">
+      <% apartments.forEach(a => { %>
+        <a class="card listing house-card" href="/landlord/apartments/<%= a.id %>">
+          <div class="apt-img">
+            <% if (a.cover) { %><img src="/uploads/<%= a.cover %>" alt="<%= a.title %>" loading="lazy">
+            <% } else { %><div class="ph"><%- include('../partials/apt-illustration', { apt: a, idSuffix: 'dash' }) %></div><% } %>
+            <span class="badge badge-on <%= a.status === 'occupied' ? 'gold' : 'green' %>"><%= a.status === 'occupied' ? 'Rented' : 'Available' %></span>
+            <span class="price-tag"><%= h.money(a.rent_amount) %> <small>/ month</small></span>
+            <% if (!a.photo_count) { %><span class="photo-count">No photos yet</span><% } else if (a.photo_count > 1) { %><span class="photo-count">📷 <%= a.photo_count %></span><% } %>
+          </div>
+          <div class="body">
+            <div class="title"><%= a.title %></div>
+            <div class="area">📍 <b><%= a.neighbourhood %></b>, <%= a.city %></div>
+            <% if (a.address) { %><div class="tiny"><%= a.address %></div><% } %>
+            <% if (a.status === 'occupied') { %>
+              <div class="house-tenant">
+                <span class="avatar sm"><%= h.initials(a.tenant_name) %></span>
+                <div>
+                  <b><%= a.tenant_name %></b>
+                  <div class="tiny">👥 <%= h.people(a.tenant_occupants) %> · since <%= h.date(a.tenant_since) %></div>
+                </div>
+              </div>
+              <div class="issue-meta" style="margin:8px 0 0">
+                <% if (a.paid_this_month) { %><span class="badge green">Rent paid · <%= h.period(month) %></span><% } else { %><span class="badge red">Rent not paid · <%= h.period(month) %></span><% } %>
+                <% if (a.open_issues) { %><span class="badge red"><%= a.open_issues %> open issue<%= a.open_issues === 1 ? '' : 's' %></span><% } %>
+              </div>
+            <% } else { %>
+              <div class="issue-meta" style="margin:8px 0 0">
+                <span class="badge plain">No tenant yet</span>
+                <% if (a.pending_apps) { %><span class="badge gold"><%= a.pending_apps %> applied</span><% } %>
+              </div>
+            <% } %>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+</section>
+
 <div class="grid-2">
   <div class="stack">
-    <div class="card">
-      <div class="card-head"><h2>Your apartments</h2></div>
-      <% if (!apartments.length) { %>
-        <div class="empty">You haven't listed any apartments yet. <a href="/landlord/apartments/new">Add your first one</a>.</div>
-      <% } else { %>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Apartment</th><th>Tenant</th><th class="num">Rent</th><th>Issues</th><th>Status</th></tr></thead>
-          <tbody>
-            <% apartments.forEach(a => { %>
-              <tr>
-                <td><a href="/landlord/apartments/<%= a.id %>"><b><%= a.title %></b></a><div class="tiny"><%= a.neighbourhood %>, <%= a.city %></div></td>
-                <td><%= a.tenant_name || '—' %><% if (a.pending_apps) { %><div><span class="badge gold"><%= a.pending_apps %> applied</span></div><% } %></td>
-                <td class="num"><%= h.money(a.rent_amount) %></td>
-                <td><% if (a.open_issues) { %><span class="badge red"><%= a.open_issues %> open</span><% } else { %><span class="tiny">None</span><% } %></td>
-                <td><%- include('../partials/status', { s: a.status }) %></td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table></div>
-      <% } %>
-    </div>
-
     <div class="card">
       <div class="card-head"><h2>Rent status · <%= h.period(month) %></h2><a class="small" href="/landlord/tenants">All tenants</a></div>
       <% if (!tenants.length) { %><div class="empty">No tenants yet.</div><% } else { %>

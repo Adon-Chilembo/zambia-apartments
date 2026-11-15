@@ -13,6 +13,11 @@
       <div class="field"><label for="neighbourhood">Neighbourhood</label><input type="text" id="neighbourhood" name="neighbourhood" value="<%= a.neighbourhood || '' %>" required placeholder="Kabulonga"></div>
       <div class="field"><label for="city">City</label><input type="text" id="city" name="city" value="<%= a.city || '' %>" required placeholder="Lusaka" list="cities"></div>
     </div>
+    <div class="field">
+      <label for="address">Street address or directions <span class="tiny">(optional, private)</span></label>
+      <input type="text" id="address" name="address" maxlength="200" value="<%= a.address || '' %>" placeholder="e.g. Plot 12, Lukasu Road, near Kabulonga Girls">
+      <span class="tiny">Used for the map. Only you and the tenant living there see it; people browsing the listings only see the neighbourhood and city.</span>
+    </div>
     <datalist id="cities"><% ['Lusaka','Kitwe','Ndola','Livingstone','Kabwe','Chingola','Solwezi','Chipata','Kasama','Mufulira'].forEach(c => { %><option value="<%= c %>"><% }) %></datalist>
     <div class="row">
       <div class="field"><label for="bedrooms">Bedrooms</label><input type="number" id="bedrooms" name="bedrooms" min="0" max="20" value="<%= a.bedrooms ?? 1 %>"></div>
@@ -20,9 +25,18 @@
       <div class="field"><label for="rent_amount">Monthly rent (K, ZMW)</label><input type="number" id="rent_amount" name="rent_amount" min="1" step="0.01" value="<%= a.rent_amount || '' %>" required></div>
     </div>
     <div class="field"><label for="description">Description</label><textarea id="description" name="description" rows="5"><%= a.description || '' %></textarea></div>
-    <div class="field"><label for="amenities">Amenities <span class="tiny">(comma separated)</span></label><input type="text" id="amenities" name="amenities" value="<%= a.amenities || '' %>" placeholder="Air conditioning, Borehole, Security, Parking"></div>
-    <div class="field"><label for="image_url">Photo URL <span class="tiny">(optional)</span></label><input type="url" id="image_url" name="image_url" value="<%= a.image_url || '' %>" placeholder="https://…"></div>
-    <button class="btn"><%= editing ? 'Save changes' : 'List apartment' %></button>
+    <% const chosen = new Set((a.services || '').split(',')); %>
+    <fieldset class="field" style="border:0;padding:0;margin:0 0 16px">
+      <legend style="font-weight:700;font-size:.88rem;margin-bottom:4px">Services this apartment offers</legend>
+      <p class="tiny" style="margin:0 0 10px">Tick everything that comes with the apartment. Tenants see these as icons on the listing.</p>
+      <div class="svc-pick">
+        <% svc.SERVICES.forEach(s => { %>
+          <label class="svc-opt"><input type="checkbox" name="services" value="<%= s.key %>" <%= chosen.has(s.key) ? 'checked' : '' %>><%- svc.serviceIcon(s) %><span><%= s.label %></span></label>
+        <% }) %>
+      </div>
+    </fieldset>
+    <div class="field"><label for="amenities">Other features <span class="tiny">(optional, comma separated)</span></label><input type="text" id="amenities" name="amenities" value="<%= a.amenities || '' %>" placeholder="Swimming pool, Mango trees, Near UNZA"></div>
+    <button class="btn lg"><%= editing ? 'Save changes' : 'List apartment and add photos' %></button>
   </form>
 <% if (!editing) { %>
 </div>

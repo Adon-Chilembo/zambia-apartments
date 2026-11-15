@@ -1,32 +1,46 @@
 <%- include('../partials/header') %>
 <div class="page-head">
-  <div><h1>Tenants</h1><p class="muted">Everyone currently living in your apartments.</p></div>
+  <div><h1>Tenants</h1><p class="muted">Everyone currently living in your apartments, and where they live.</p></div>
 </div>
 
 <% if (!tenants.length) { %>
   <div class="card empty">No tenants yet. Approve an application or send an invite code from an apartment's page.</div>
 <% } else { %>
-  <div class="listing-grid" style="grid-template-columns:repeat(auto-fill,minmax(320px,1fr))">
-    <% tenants.forEach(t => { %>
-      <div class="card pad">
-        <div class="li-row">
-          <div class="person">
-            <div class="avatar lg"><%= h.initials(t.name) %></div>
-            <div><b><%= t.name %></b><div class="small muted"><a href="/landlord/apartments/<%= t.apartment_id %>"><%= t.title %></a></div></div>
+  <div class="listing-grid" style="grid-template-columns:repeat(auto-fill,minmax(330px,1fr))">
+    <% tenants.forEach(t => { const apt = { id: t.apartment_id, title: t.title, neighbourhood: t.neighbourhood, city: t.city, address: t.address }; %>
+      <div class="card listing tenant-card">
+        <!-- The apartment they rent -->
+        <a class="apt-img tenant-home" href="/landlord/apartments/<%= t.apartment_id %>" aria-label="Open <%= t.title %>">
+          <% if (t.cover) { %><img src="/uploads/<%= t.cover %>" alt="<%= t.title %>" loading="lazy">
+          <% } else { %><div class="ph"><%- include('../partials/apt-illustration', { apt, idSuffix: 'ten' }) %></div><% } %>
+          <span class="badge badge-on gold">Rented</span>
+          <span class="home-label">
+            <b><%= t.title %></b>
+            <span>📍 <%= t.neighbourhood %>, <%= t.city %></span>
+          </span>
+        </a>
+
+        <div class="body">
+          <div class="li-row" style="align-items:center">
+            <div class="person">
+              <div class="avatar"><%= h.initials(t.name) %></div>
+              <div><b><%= t.name %></b><div class="tiny">Tenant since <%= h.date(t.start_date) %></div></div>
+            </div>
+            <% if (t.paid_this_month) { %><span class="badge green">Paid <%= h.period(month) %></span><% } else { %><span class="badge red">Unpaid <%= h.period(month) %></span><% } %>
           </div>
-          <% if (t.paid_this_month) { %><span class="badge green">Paid <%= h.period(month) %></span><% } else { %><span class="badge red">Unpaid <%= h.period(month) %></span><% } %>
+
+          <dl class="details" style="margin-top:14px">
+            <dt>Apartment</dt><dd><a href="/landlord/apartments/<%= t.apartment_id %>"><%= t.title %></a><div class="tiny"><%= t.bedrooms %> bed · <%= t.bathrooms %> bath · <%= h.money(t.rent_amount) %> / month</div></dd>
+            <dt>Area</dt><dd>📍 <%= t.neighbourhood %>, <%= t.city %><% if (t.address) { %><div class="tiny"><%= t.address %></div><% } %><div class="tiny"><a href="<%= h.mapLink(apt) %>" target="_blank" rel="noopener">View on map ↗</a></div></dd>
+            <dt>Household</dt><dd><% if (t.occupants) { %><b><%= h.people(t.occupants) %></b><% if (t.household_note) { %><div class="tiny"><%= t.household_note %></div><% } %><% } else { %><span class="muted">Not given yet</span><% } %></dd>
+            <dt>Phone</dt><dd><% if (t.phone) { %><a href="tel:<%= t.phone %>"><%= t.phone %></a><% } else { %>—<% } %></dd>
+            <dt>Email</dt><dd><a href="mailto:<%= t.email %>"><%= t.email %></a></dd>
+            <dt>Occupation</dt><dd><%= t.occupation || '—' %></dd>
+            <dt>Emergency</dt><dd><%= t.emergency_contact || '—' %></dd>
+            <dt>Total paid</dt><dd><%= h.money(t.total_paid) %><%= t.last_paid ? ' · last ' + h.date(t.last_paid) : '' %></dd>
+            <dt>Open issues</dt><dd><%= t.open_issues %></dd>
+          </dl>
         </div>
-        <dl class="details" style="margin-top:14px">
-          <dt>Phone</dt><dd><% if (t.phone) { %><a href="tel:<%= t.phone %>"><%= t.phone %></a><% } else { %>—<% } %></dd>
-          <dt>Email</dt><dd><a href="mailto:<%= t.email %>"><%= t.email %></a></dd>
-          <dt>Household</dt><dd><% if (t.occupants) { %><b><%= h.people(t.occupants) %></b><% if (t.household_note) { %><div class="tiny"><%= t.household_note %></div><% } %><% } else { %><span class="muted">Not given yet</span><% } %></dd>
-          <dt>Occupation</dt><dd><%= t.occupation || '—' %></dd>
-          <dt>Emergency</dt><dd><%= t.emergency_contact || '—' %></dd>
-          <dt>Moved in</dt><dd><%= h.date(t.start_date) %></dd>
-          <dt>Rent</dt><dd><%= h.money(t.rent_amount) %> / month</dd>
-          <dt>Total paid</dt><dd><%= h.money(t.total_paid) %><%= t.last_paid ? ' · last ' + h.date(t.last_paid) : '' %></dd>
-          <dt>Open issues</dt><dd><%= t.open_issues %></dd>
-        </dl>
       </div>
     <% }) %>
   </div>

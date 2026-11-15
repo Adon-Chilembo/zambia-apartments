@@ -1,19 +1,30 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= title %> · Zambia Apartments</title>
+  <meta name="description" content="Find apartments across Zambia, stay connected with your landlord and pay rent with Mobile Money.">
+  <script>
+    // Apply the saved theme before the page paints (default: dark).
+    try { var t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 <div class="kente"></div>
-<header class="topbar">
+<header class="topbar" id="topbar">
   <div class="wrap">
-    <a class="logo" href="/"><span class="logo-mark">⌂</span> Zambia Apartments</a>
-    <nav class="nav">
+    <button class="nav-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="site-nav" onclick="var t=document.getElementById('topbar');var o=t.classList.toggle('open');this.setAttribute('aria-expanded',o)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <a class="logo" href="/">
+      <span class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg></span>
+      <span>Zambia <em>Apartments</em></span>
+    </a>
+    <nav class="nav" id="site-nav">
       <a href="/" class="<%= path === '/' ? 'active' : '' %>">Apartments</a>
       <% if (user && user.role === 'tenant') { %>
         <a href="/tenant" class="<%= path.startsWith('/tenant') || path.startsWith('/pay') ? 'active' : '' %>">My home</a>
@@ -28,11 +39,20 @@
         <span class="whoami"><%= user.name %> · <%= user.role %></span>
       <% } else { %>
         <a href="/login" class="<%= path === '/login' ? 'active' : '' %>">Log in</a>
-        <a class="btn sm" href="/register" style="color:#fff">Sign up</a>
+        <a class="btn sm" href="/register">Sign up</a>
       <% } %>
     </nav>
+    <button class="theme-toggle" type="button" aria-label="Switch light or dark mode" title="Light / dark mode"
+      onclick="var d=document.documentElement;var n=d.dataset.theme==='dark'?'light':'dark';d.dataset.theme=n;try{localStorage.setItem('theme',n)}catch(e){}">
+      <svg class="stars" viewBox="0 0 24 24" fill="currentColor"><circle cx="4" cy="6" r="1.4"/><circle cx="12" cy="3" r="1"/><circle cx="9" cy="14" r="1.2"/></svg>
+      <span class="knob"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>
+    </button>
   </div>
 </header>
-<main>
+<main class="<%= locals.bare ? 'bare' : '' %>">
+<% if (locals.bare) { %>
+  <% if (flash) { %><div class="wrap flash-wrap"><div class="flash <%= flash.type %>" style="margin:0"><%= flash.text %></div></div><% } %>
+<% } else { %>
 <div class="wrap">
 <% if (flash) { %><div class="flash <%= flash.type %>"><%= flash.text %></div><% } %>
+<% } %>

@@ -1,67 +1,137 @@
 <%- include('partials/header') %>
 
-<section class="hero">
-  <h1>Find your next home in Zambia</h1>
-  <p>Browse apartments listed directly by landlords. Once you move in, report problems, suggest improvements and pay rent with Mobile Money, all in one place.</p>
-  <div class="stats">
-    <div><b><%= counts.total %></b><span>apartments available</span></div>
-    <div><b><%= counts.cities %></b><span>cities</span></div>
-    <div><b>MoMo</b><span>rent payments</span></div>
+<% const ctaHref = !user ? '/register?role=landlord' : user.role === 'landlord' ? '/landlord/apartments/new' : '/tenant'; %>
+<% const ctaText = !user ? 'List your property' : user.role === 'landlord' ? 'List a new apartment' : 'Go to my home'; %>
+
+<!-- Hero -->
+<section class="hero-full" style="--hero: url('<%= heroImage %>')">
+  <div class="wrap">
+    <div class="hero-inner">
+      <span class="pill"><span class="dot"></span>Homes across Zambia</span>
+      <h1 class="hero-title">Find your next home in <span class="accent">Zambia</span></h1>
+      <p class="hero-sub">Apartments listed directly by landlords in Lusaka, the Copperbelt and Livingstone. Move in, report problems and pay rent with Mobile Money, all in one place.</p>
+      <div class="hero-cta">
+        <a class="btn lg" href="#listings">Browse apartments</a>
+        <a class="btn lg glass" href="<%= ctaHref %>"><%= ctaText %></a>
+      </div>
+    </div>
   </div>
 </section>
 
-<form class="card filters" method="get" action="/">
-  <div>
-    <label for="q">Search</label>
-    <input type="text" id="q" name="q" value="<%= filters.q %>" placeholder="Kabulonga, furnished, solar backup…">
-  </div>
-  <div>
-    <label for="city">City</label>
-    <select id="city" name="city">
-      <option value="">All cities</option>
-      <% cities.forEach(c => { %><option <%= filters.city === c ? 'selected' : '' %>><%= c %></option><% }) %>
-    </select>
-  </div>
-  <div>
-    <label for="bedrooms">Bedrooms</label>
-    <select id="bedrooms" name="bedrooms">
-      <option value="">Any</option>
-      <% [1,2,3,4].forEach(n => { %><option value="<%= n %>" <%= String(filters.bedrooms) === String(n) ? 'selected' : '' %>><%= n %>+</option><% }) %>
-    </select>
-  </div>
-  <div>
-    <label for="max_rent">Max rent / month</label>
-    <select id="max_rent" name="max_rent">
-      <option value="">Any</option>
-      <% [2500, 5000, 8000, 12000, 20000].forEach(n => { %><option value="<%= n %>" <%= String(filters.max_rent) === String(n) ? 'selected' : '' %>><%= h.money(n).replace('.00','') %></option><% }) %>
-    </select>
-  </div>
-  <div style="display:flex;gap:8px">
-    <button class="btn">Search</button>
-    <% if (filters.q || filters.city || filters.bedrooms || filters.max_rent) { %><a class="btn secondary" href="/">Clear</a><% } %>
-  </div>
-</form>
+<div class="wrap">
+  <!-- Search -->
+  <form class="card filters hero-search" method="get" action="/#listings" role="search">
+    <div>
+      <label for="q">Search</label>
+      <input type="search" id="q" name="q" value="<%= filters.q %>" placeholder="Kabulonga, furnished, solar backup…">
+    </div>
+    <div>
+      <label for="city">City</label>
+      <select id="city" name="city">
+        <option value="">All cities</option>
+        <% cities.forEach(c => { %><option <%= filters.city === c ? 'selected' : '' %>><%= c %></option><% }) %>
+      </select>
+    </div>
+    <div>
+      <label for="bedrooms">Bedrooms</label>
+      <select id="bedrooms" name="bedrooms">
+        <option value="">Any</option>
+        <% [1,2,3,4].forEach(n => { %><option value="<%= n %>" <%= String(filters.bedrooms) === String(n) ? 'selected' : '' %>><%= n %>+</option><% }) %>
+      </select>
+    </div>
+    <div>
+      <label for="max_rent">Max rent / month</label>
+      <select id="max_rent" name="max_rent">
+        <option value="">Any</option>
+        <% [2500, 5000, 8000, 12000, 20000].forEach(n => { %><option value="<%= n %>" <%= String(filters.max_rent) === String(n) ? 'selected' : '' %>><%= h.money(n).replace('.00','') %></option><% }) %>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn">Search</button>
+      <% if (filtered) { %><a class="btn secondary" href="/#listings">Clear</a><% } %>
+    </div>
+  </form>
 
-<% if (!apartments.length) { %>
-  <div class="card empty">No apartments match your search. Try removing a filter.</div>
-<% } else { %>
-  <p class="muted small"><%= apartments.length %> <%= apartments.length === 1 ? 'apartment' : 'apartments' %> available</p>
-  <div class="listing-grid">
-    <% apartments.forEach(apt => { %>
-      <a class="card listing" href="/apartments/<%= apt.id %>">
-        <%- include('partials/apt-image', { apt }) %>
-        <div class="body">
-          <div class="price"><%= h.money(apt.rent_amount) %> <small>/ month</small></div>
-          <div class="title"><%= apt.title %></div>
-          <div class="muted small"><%= apt.neighbourhood %>, <%= apt.city %></div>
-          <div class="facts" style="margin-top:6px">
-            <span>🛏 <%= apt.bedrooms %> bed</span>
-            <span>🛁 <%= apt.bathrooms %> bath</span>
-          </div>
+  <% if (!filtered) { %>
+    <!-- What you'll find -->
+    <% if (popularServices.length) { %>
+      <section class="section">
+        <div class="section-head">
+          <span class="eyebrow">What you'll find</span>
+          <h2>Everything you need to settle in</h2>
+          <p class="muted">Each listing shows exactly which services come with the apartment.</p>
         </div>
-      </a>
-    <% }) %>
-  </div>
-<% } %>
+        <div class="feature-grid">
+          <% popularServices.forEach(s => { %>
+            <div class="card feature"><span class="ico"><%- svc.serviceIcon(s) %></span><b><%= s.label %></b></div>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+
+    <!-- At a glance -->
+    <section class="section">
+      <div class="section-head"><span class="eyebrow">At a glance</span><h2>Room for you in Zambia</h2></div>
+      <div class="glance">
+        <div class="card"><div class="num green"><%= counts.total %></div><div class="lbl">apartments available now</div></div>
+        <div class="card"><div class="num"><%= counts.cities %></div><div class="lbl">cities</div></div>
+        <div class="card"><div class="num"><%= counts.landlords %></div><div class="lbl">landlords listing</div></div>
+        <div class="card"><div class="num"><%= counts.from_rent ? h.money(counts.from_rent).replace('.00','') : '—' %></div><div class="lbl">rent from, per month</div></div>
+      </div>
+    </section>
+  <% } %>
+
+  <!-- Listings -->
+  <section class="section" id="listings">
+    <div class="section-head">
+      <span class="eyebrow"><%= filtered ? 'Search results' : 'Available now' %></span>
+      <h2><%= apartments.length %> <%= apartments.length === 1 ? 'apartment' : 'apartments' %><%= filtered ? ' match your search' : ' ready to move in' %></h2>
+    </div>
+    <% if (!apartments.length) { %>
+      <div class="card empty">No apartments match your search. Try removing a filter.</div>
+    <% } else { %>
+      <div class="listing-grid">
+        <% apartments.forEach(apt => { %>
+          <a class="card listing" href="/apartments/<%= apt.id %>">
+            <%- include('partials/apt-image', { apt, showPrice: true }) %>
+            <div class="body">
+              <div class="title"><%= apt.title %></div>
+              <div class="muted small">📍 <%= apt.neighbourhood %>, <%= apt.city %></div>
+              <div class="facts" style="margin-top:4px">
+                <span>🛏 <%= apt.bedrooms %> bed</span>
+                <span>🛁 <%= apt.bathrooms %> bath</span>
+              </div>
+              <% if (apt.serviceList.length) { %>
+                <div class="svc-icons">
+                  <% apt.serviceList.slice(0, 6).forEach(s => { %><span title="<%= s.label %>"><%- svc.serviceIcon(s) %></span><% }) %>
+                  <% if (apt.serviceList.length > 6) { %><span class="more">+<%= apt.serviceList.length - 6 %></span><% } %>
+                </div>
+              <% } %>
+            </div>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+
+  <% if (!filtered) { %>
+    <!-- How it works -->
+    <section class="section">
+      <div class="section-head"><span class="eyebrow">How it works</span><h2>Move in, in three steps</h2></div>
+      <div class="steps">
+        <div class="card step"><div class="step-num">1</div><h3>Find a place</h3><p>Browse apartments, look through the photos and see exactly which services each one offers.</p></div>
+        <div class="card step"><div class="step-num">2</div><h3>Apply or use an invite code</h3><p>Apply in a minute, or enter the code your landlord gave you, and you're connected.</p></div>
+        <div class="card step"><div class="step-num">3</div><h3>Manage it all online</h3><p>Pay rent with MTN, Airtel or Zamtel Mobile Money, and report problems straight to your landlord.</p></div>
+      </div>
+    </section>
+
+    <section class="card cta-panel">
+      <span class="eyebrow">For landlords</span>
+      <h2>Have an apartment to rent?</h2>
+      <p class="muted" style="max-width:520px;margin:0 auto 20px">List it with photos and services, approve tenants, track rent and handle problems from one dashboard.</p>
+      <a class="btn lg" href="<%= ctaHref %>"><%= ctaText %></a>
+    </section>
+  <% } %>
+</div>
 
 <%- include('partials/footer') %>

@@ -111,6 +111,23 @@ addColumn('tenancies', 'occupants', 'INTEGER');
 addColumn('tenancies', 'household_note', 'TEXT');
 addColumn('applications', 'occupants', 'INTEGER');
 addColumn('applications', 'household_note', 'TEXT');
+// Services an apartment offers: comma-separated keys from src/services.js.
+addColumn('apartments', 'services', "TEXT NOT NULL DEFAULT ''");
+// Optional street address / directions. Private: shown to the landlord (and map), never on the public listing.
+addColumn('apartments', 'address', 'TEXT');
+
+// Photos landlords upload for each apartment. The lowest sort_order is the cover photo.
+db.exec(`
+CREATE TABLE IF NOT EXISTS apartment_photos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  apartment_id INTEGER NOT NULL REFERENCES apartments(id) ON DELETE CASCADE,
+  filename TEXT NOT NULL,
+  caption TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_photos_apartment ON apartment_photos(apartment_id, sort_order);
+`);
 
 /** Run several statements atomically. */
 function transaction(fn) {

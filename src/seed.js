@@ -5,6 +5,14 @@ const path = require('node:path');
 const dbFile = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'zambia_apartments.db');
 for (const f of [dbFile, dbFile + '-wal', dbFile + '-shm']) fs.rmSync(f, { force: true });
 
+// Photos belong to the database being wiped, so remove uploaded files too (only our random-named images).
+const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'data', 'uploads');
+if (fs.existsSync(uploadDir)) {
+  for (const name of fs.readdirSync(uploadDir)) {
+    if (/^[a-f0-9]{32}\.(jpg|png|webp)$/.test(name)) fs.rmSync(path.join(uploadDir, name), { force: true });
+  }
+}
+
 const bcrypt = require('bcryptjs');
 const { run, transaction } = require('./db');
 const { currentPeriod } = require('./helpers');
@@ -66,6 +74,24 @@ transaction(() => {
   const a9 = apt(chanda, '4-bedroom house with staff quarters', 'Northrise', 'Ndola', 4, 4, 15000,
     'Detached four-bedroom house with staff quarters, a large yard and a standby generator.',
     'Generator, Staff quarters, Large yard, Electric fence');
+
+  // Services (icons on the listing) and any other features (free text)
+  const services = (aptId, keys, extras = '') => run('UPDATE apartments SET services = ?, amenities = ? WHERE id = ?', keys, extras, aptId);
+  services(a1, 'internet,solar,borehole,security,fence,parking,prepaid_meter,balcony', 'Built-in wardrobes');
+  services(a2, 'internet,furnished,water_tank,solar,security', 'Walk to Levy Junction mall');
+  services(a3, 'internet,solar,power,borehole,security,cctv,fence,parking,garden,staff_quarters,kitchen,laundry', 'Double garage, Near international schools');
+  services(a4, 'borehole,parking,fence,water_tank,prepaid_meter', 'Store room');
+  services(a5, 'prepaid_meter,water_tank,security', 'Near Chilenje market');
+  services(a6, 'garden,security,borehole,solar,parking', 'Near Freedom Park mall');
+  services(a7, 'aircon,parking,solar,garden,internet', 'Veranda, Mango trees, 15 min to Victoria Falls');
+  services(a8, 'internet,water,security,cleaning,lounge', 'Near CBU, Study desk');
+  services(a9, 'generator,staff_quarters,fence,security,cctv,parking,garden,borehole', 'Large yard');
+
+  // Private street addresses (landlord-only, used for the map)
+  const address = (aptId, text) => run('UPDATE apartments SET address = ? WHERE id = ?', text, aptId);
+  address(a1, 'Lukasu Road, Kabulonga');
+  address(a4, 'Kamloops Road, Chelstone');
+  address(a6, 'Parklands, near Freedom Park Mall');
 
   // Active tenancies
   const tenancy = (aptId, tenantId, start, occupants = null, note = null) => {

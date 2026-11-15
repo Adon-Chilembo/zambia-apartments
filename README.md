@@ -2,9 +2,10 @@
 
 A website with three parts:
 
-- **Apartment listings** (public) show every available apartment, with search by area, city, bedrooms and rent in Kwacha (ZMW).
+- **Landing page and listings** (public): a photo hero, the services on offer, live availability, and every available apartment, searchable by area, city, bedrooms and rent in Kwacha (ZMW). Light and dark mode, and a phone-friendly menu.
+- **Apartment pages** show the services as icon cards (Wi-Fi, solar backup, borehole, security and more) and a photo gallery with captions and a full-screen viewer.
 - **Tenant portal** lets a tenant connect to their apartment and landlord, report problems, suggest improvements, keep their details up to date and pay rent with Mobile Money (MTN MoMo, Airtel Money or Zamtel Kwacha).
-- **Landlord dashboard** lets a landlord list apartments, approve applications, invite tenants, see each tenant's details, respond to problems and suggestions, and track rent payments.
+- **Landlord dashboard** lets a landlord list apartments, upload photos (with captions, a cover photo and ordering), tick the services each apartment offers, approve applications, invite tenants, see each tenant's details, respond to problems and suggestions, and track rent payments.
 
 Many landlords can use the site. Each one sees only their own apartments and tenants.
 
@@ -65,6 +66,14 @@ Notes:
 - **Non-Zambian accounts:** Flutterwave says merchants registered outside Zambia must email them to enable Zambian Mobile Money.
 - **Live mode:** switch to the live key (`FLWSECK-...-X`) only when you're ready to take real money; the app prints a warning at startup when one is in use. `.env` is in `.gitignore`, so keys are never committed.
 
+## Photos
+
+Landlords upload photos on an apartment's **Photos** tab: JPG, PNG or WebP, up to 8 MB each and 30 per apartment. The first photo is the cover on the listings. Files are checked to be real images, saved under `data/uploads/` with random names, and served at `/uploads/...`. `npm run seed` clears them along with the demo data.
+
+**Hosting note:** free hosts such as Render's free tier wipe the disk on every deploy or restart, so uploaded photos (and the SQLite database) would be lost. Use a persistent disk, or move photos to cloud storage such as Cloudinary or S3, before going live.
+
+The landing-page background is a free photo from [Unsplash](https://unsplash.com) (photo `photo-1494526585095-c41746248156`, Unsplash licence). To use your own, set `HERO_IMAGE_URL` in `.env`, for example to a photo you put in `public/`: `HERO_IMAGE_URL=/static/hero.jpg`.
+
 ## Settings (`.env`)
 
 | Variable | Default | Purpose |
@@ -75,6 +84,8 @@ Notes:
 | `SESSION_SECRET` | random on each start | Signs login cookies. Set it so logins survive restarts |
 | `PORT` | `3000` | Web server port |
 | `DB_PATH` | `data/zambia_apartments.db` | SQLite database file |
+| `UPLOAD_DIR` | `data/uploads` | Where uploaded photos are stored |
+| `HERO_IMAGE_URL` | Unsplash photo | Landing-page background image |
 
 ## Before going live
 
@@ -84,7 +95,7 @@ This is a working local demo. Before real tenants use it:
 - Use a persistent session store (sessions are currently kept in memory).
 - Add password reset and SMS notifications, for example for new issues or rent reminders.
 - Use Flutterwave live keys and set up the webhook.
-- Allow photo uploads (listings currently take an image URL).
+- Store photos and the database somewhere persistent (see the hosting note above).
 
 ## Project layout
 
@@ -92,6 +103,8 @@ This is a working local demo. Before real tenants use it:
 src/server.js          app setup, sessions, CSRF protection
 src/db.js              SQLite schema
 src/payments.js        Flutterwave + simulator
+src/services.js        services catalogue and icons
+src/uploads.js         photo upload handling
 src/routes/            public, auth, tenant, landlord, pay, webhooks
 views/                 EJS templates
 public/style.css       styling

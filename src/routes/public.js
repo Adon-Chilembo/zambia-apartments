@@ -1,8 +1,13 @@
 const express = require('express');
 const { get, all, run } = require('../db');
 const { flash, activeTenancy, parseOccupants } = require('../helpers');
+const { SERVICES, parseServices } = require('../services');
 
 const router = express.Router();
+
+// The cover photo is the apartment's first photo by sort order.
+const COVER_SQL = '(SELECT filename FROM apartment_photos p WHERE p.apartment_id = a.id ORDER BY sort_order, id LIMIT 1) AS cover';
+const PHOTO_COUNT_SQL = '(SELECT COUNT(*) FROM apartment_photos p WHERE p.apartment_id = a.id) AS photo_count';
 
 router.get('/', (req, res) => {
   const { q = '', city = '', bedrooms = '', max_rent = '' } = req.query;
@@ -25,15 +30,36 @@ router.get('/', (req, res) => {
     params.push(Number(max_rent));
   }
   const apartments = all(
-    `SELECT a.*, u.name AS landlord_name FROM apartments a JOIN users u ON u.id = a.landlord_id
+    `SELECT a.*, u.name AS landlord_name, ${COVER_SQL}, ${PHOTO_COUNT_SQL}
+       FROM apartments a JOIN users u ON u.id = a.landlord_id
       WHERE ${where.join(' AND ')} ORDER BY a.created_at DESC, a.id DESC`,
     ...params
-  );
+  ).map((a) => ({ ...a, serviceList: parseServices(a.services) }));
   const cities = all("SELECT DISTINCT city FROM apartments WHERE status = 'available' ORDER BY city").map((r) => r.city);
   const counts = get(
-    "SELECT COUNT(*) AS total, COUNT(DISTINCT city) AS cities FROM apartments WHERE status = 'available'"
+    `SELECT COUNT(*) AS total, COUNT(DISTINCT city) AS cities, COUNT(DISTINCT landlord_id) AS landlords,
+            MIN(rent_amount) AS from_rent
+       FROM apartments WHERE status = 'available'`
   );
-  res.render('listings', { title: 'Available apartments', apartments, cities, counts, filters: { q, city, bedrooms, max_rent } });
+
+  // The services offered most often across available apartments, for the "what you'll find" section.
+  const tally = {};
+  all("SELECT services FROM apartments WHERE status = 'available'").forEach((r) =>
+    parseServices(r.services).forEach((s) => (tally[s.key] = (tally[s.key] || 0) + 1))
+  );
+  const popularServices = SERVICES.filter((s) => tally[s.key]).sort((a, b) => tally[b.key] - tally[a.key]).slice(0, 8);
+
+  const filtered = Boolean(q || city || bedrooms || max_rent);
+  res.render('listings', {
+    title: 'Find your next home in Zambia',
+    bare: true,
+    apartments,
+    cities,
+    counts,
+    popularServices,
+    filtered,
+    filters: { q, city, bedrooms, max_rent },
+  });
 });
 
 router.get('/apartments/:id', (req, res) => {
@@ -53,7 +79,15 @@ router.get('/apartments/:id', (req, res) => {
   }
   if (apartment.status !== 'available' && applyState !== 'owner') applyState = 'taken';
 
-  res.render('apartment', { title: apartment.title, apartment, applyState });
+  const photos = all('SELECT * FROM apartment_photos WHERE apartment_id = ? ORDER BY sort_order, id', apartment.id);
+  res.render('apartment', {
+    title: apartment.title,
+    bare: true,
+    apartment,
+    applyState,
+    photos,
+    serviceList: parseServices(apartment.services),
+  });
 });
 
 router.post('/apartments/:id/apply', (req, res) => {

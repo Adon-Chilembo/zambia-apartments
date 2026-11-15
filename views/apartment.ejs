@@ -1,67 +1,138 @@
 <%- include('partials/header') %>
+<% const a = apartment; const cover = photos[0]; const extras = (a.amenities || '').split(',').map(s => s.trim()).filter(Boolean); %>
 
-<p class="small"><a href="/">← All apartments</a></p>
-
-<div class="grid-2">
-  <div class="stack">
-    <div class="card" style="overflow:hidden">
-      <%- include('partials/apt-image', { apt: apartment, showStatus: true }) %>
-      <div class="card-body">
-        <h1 style="margin-bottom:4px"><%= apartment.title %></h1>
-        <p class="muted"><%= apartment.neighbourhood %>, <%= apartment.city %></p>
-        <div class="facts">
-          <span>🛏 <%= apartment.bedrooms %> bedroom<%= apartment.bedrooms === 1 ? '' : 's' %></span>
-          <span>🛁 <%= apartment.bathrooms %> bathroom<%= apartment.bathrooms === 1 ? '' : 's' %></span>
-          <span>👤 Listed by <%= apartment.landlord_name %></span>
-        </div>
-      </div>
-    </div>
-    <div class="card pad">
-      <h2>About this apartment</h2>
-      <p style="white-space:pre-line"><%= apartment.description || 'No description yet.' %></p>
-      <% if (apartment.amenities) { %>
-        <h3 style="margin-top:14px">Amenities</h3>
-        <div class="months">
-          <% apartment.amenities.split(',').map(s => s.trim()).filter(Boolean).forEach(a => { %><span class="badge plain"><%= a %></span><% }) %>
-        </div>
-      <% } %>
+<!-- Hero with cover photo -->
+<section class="apt-hero">
+  <div class="bgimg">
+    <% if (cover) { %><img src="/uploads/<%= cover.filename %>" alt="<%= cover.caption || a.title %>">
+    <% } else if (a.image_url) { %><img src="<%= a.image_url %>" alt="<%= a.title %>">
+    <% } else { %><%- include('partials/apt-illustration', { apt: a, idSuffix: 'hero' }) %><% } %>
+  </div>
+  <div class="wrap" style="width:100%">
+    <a class="back" href="/#listings">← All apartments</a>
+    <div style="margin-top:14px"><span class="pill"><span class="dot"></span><%= a.neighbourhood %>, <%= a.city %></span></div>
+    <h1><%= a.title %></h1>
+    <div class="facts-row">
+      <span>🛏 <%= a.bedrooms %> bedroom<%= a.bedrooms === 1 ? '' : 's' %></span>
+      <span>🛁 <%= a.bathrooms %> bathroom<%= a.bathrooms === 1 ? '' : 's' %></span>
+      <span><%= a.status === 'available' ? '✅ Available now' : '🔒 Occupied' %></span>
+      <% if (photos.length) { %><span>📷 <%= photos.length %> photo<%= photos.length === 1 ? '' : 's' %></span><% } %>
     </div>
   </div>
+</section>
 
-  <aside>
-    <div class="card pad" style="position:sticky;top:84px">
-      <div class="label muted small">Monthly rent</div>
-      <div style="font-size:1.8rem;font-weight:800"><%= h.money(apartment.rent_amount) %></div>
-      <p class="tiny">Paid monthly via Mobile Money (MTN MoMo, Airtel Money, Zamtel Kwacha)</p>
-      <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
-
-      <% if (applyState === 'can_apply') { %>
-        <form method="post" action="/apartments/<%= apartment.id %>/apply">
-          <input type="hidden" name="_csrf" value="<%= csrf %>">
-          <%- include('partials/household-fields', { occupants: '', note: '' }) %>
-          <div class="field">
-            <label for="message">Message to the landlord</label>
-            <textarea id="message" name="message" placeholder="Introduce yourself, and say when you'd like to move in…"></textarea>
+<div class="wrap">
+  <div class="apt-layout">
+    <div>
+      <!-- Services -->
+      <section class="section" style="padding-top:8px">
+        <span class="eyebrow">What this apartment offers</span>
+        <h2 class="big">Services &amp; amenities</h2>
+        <% if (serviceList.length) { %>
+          <div class="feature-grid" style="margin-top:16px">
+            <% serviceList.forEach(s => { %>
+              <div class="card feature"><span class="ico"><%- svc.serviceIcon(s) %></span><b><%= s.label %></b></div>
+            <% }) %>
           </div>
-          <button class="btn block">Apply for this apartment</button>
-        </form>
-        <p class="tiny" style="margin-top:10px">Have an invite code from the landlord? <a href="/tenant">Enter it here</a>.</p>
-      <% } else if (applyState === 'guest') { %>
-        <a class="btn block" href="/register?role=tenant&next=/apartments/<%= apartment.id %>">Sign up to apply</a>
-        <p class="small muted" style="margin-top:10px;text-align:center">Already have an account? <a href="/login?next=/apartments/<%= apartment.id %>">Log in</a></p>
-      <% } else if (applyState === 'applied') { %>
-        <div class="callout">You've applied for this apartment. You'll see the landlord's decision on <a href="/tenant">My home</a>.</div>
-      <% } else if (applyState === 'has_home') { %>
-        <div class="callout">You're already connected to an apartment. <a href="/tenant">Go to My home</a>.</div>
-      <% } else if (applyState === 'owner') { %>
-        <a class="btn block secondary" href="/landlord/apartments/<%= apartment.id %>">Manage this apartment</a>
-      <% } else if (applyState === 'taken') { %>
-        <div class="callout">This apartment is currently occupied.</div>
-      <% } else { %>
-        <p class="small muted">Landlord accounts can't apply for apartments.</p>
-      <% } %>
+        <% } else if (!extras.length) { %>
+          <p class="muted">The landlord hasn't listed the services yet.</p>
+        <% } %>
+        <% if (extras.length) { %>
+          <div class="chip-row" style="justify-content:flex-start;margin-top:14px">
+            <% extras.forEach(e => { %><span class="chip"><%= e %></span><% }) %>
+          </div>
+        <% } %>
+      </section>
+
+      <!-- Gallery -->
+      <section class="section">
+        <span class="eyebrow">The apartment</span>
+        <h2 class="big">Take a look around</h2>
+        <% if (photos.length) { %>
+          <div class="gallery" style="margin-top:16px">
+            <% photos.forEach((p, i) => { %>
+              <button type="button" class="shot <%= i === 0 && photos.length > 2 ? 'wide' : '' %>" data-index="<%= i %>" aria-label="View photo: <%= p.caption || 'Photo ' + (i + 1) %>">
+                <img src="/uploads/<%= p.filename %>" alt="<%= p.caption || a.title %>" loading="lazy">
+                <% if (p.caption) { %><span class="cap"><%= p.caption %></span><% } %>
+              </button>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <div class="card empty" style="margin-top:16px">No photos yet. <% if (applyState === 'owner') { %><a href="/landlord/apartments/<%= a.id %>?tab=photos">Add photos</a><% } else { %>Check back soon.<% } %></div>
+        <% } %>
+      </section>
+
+      <!-- About -->
+      <section class="section">
+        <span class="eyebrow">About</span>
+        <h2 class="big">About this apartment</h2>
+        <div class="card pad" style="margin-top:12px">
+          <p style="white-space:pre-line;margin:0"><%= a.description || 'No description yet.' %></p>
+          <p class="tiny" style="margin:14px 0 0">Listed by <b><%= a.landlord_name %></b></p>
+        </div>
+      </section>
     </div>
-  </aside>
+
+    <!-- Apply card -->
+    <aside>
+      <div class="card pad apt-aside">
+        <div class="muted small">Monthly rent</div>
+        <div class="price-big"><%= h.money(a.rent_amount) %></div>
+        <p class="tiny">Paid monthly with Mobile Money (MTN MoMo, Airtel Money, Zamtel Kwacha)</p>
+        <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+
+        <% if (applyState === 'can_apply') { %>
+          <form method="post" action="/apartments/<%= a.id %>/apply">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <%- include('partials/household-fields', { occupants: '', note: '' }) %>
+            <div class="field">
+              <label for="message">Message to the landlord</label>
+              <textarea id="message" name="message" placeholder="Introduce yourself, and say when you'd like to move in…"></textarea>
+            </div>
+            <button class="btn block lg">Apply for this apartment</button>
+          </form>
+          <p class="tiny" style="margin-top:10px">Have an invite code from the landlord? <a href="/tenant">Enter it here</a>.</p>
+        <% } else if (applyState === 'guest') { %>
+          <a class="btn block lg" href="/register?role=tenant&next=/apartments/<%= a.id %>">Sign up to apply</a>
+          <p class="small muted" style="margin-top:10px;text-align:center">Already have an account? <a href="/login?next=/apartments/<%= a.id %>">Log in</a></p>
+        <% } else if (applyState === 'applied') { %>
+          <div class="callout">You've applied for this apartment. You'll see the landlord's decision on <a href="/tenant">My home</a>.</div>
+        <% } else if (applyState === 'has_home') { %>
+          <div class="callout">You're already connected to an apartment. <a href="/tenant">Go to My home</a>.</div>
+        <% } else if (applyState === 'owner') { %>
+          <a class="btn block" href="/landlord/apartments/<%= a.id %>?tab=photos">Manage photos &amp; services</a>
+          <a class="btn block secondary" style="margin-top:8px" href="/landlord/apartments/<%= a.id %>">Manage this apartment</a>
+        <% } else if (applyState === 'taken') { %>
+          <div class="callout">This apartment is currently occupied.</div>
+        <% } else { %>
+          <p class="small muted">Landlord accounts can't apply for apartments.</p>
+        <% } %>
+      </div>
+    </aside>
+  </div>
 </div>
+
+<% if (photos.length) { %>
+<dialog class="lightbox" id="lightbox" aria-label="Photo viewer">
+  <button class="lb-close" type="button" aria-label="Close">✕</button>
+  <button class="lb-btn lb-prev" type="button" aria-label="Previous photo">‹</button>
+  <figure><img alt=""><figcaption></figcaption></figure>
+  <button class="lb-btn lb-next" type="button" aria-label="Next photo">›</button>
+</dialog>
+<script>
+  (function () {
+    var photos = <%- JSON.stringify(photos.map(p => ({ src: '/uploads/' + p.filename, caption: p.caption || '' }))).replace(/</g, '\\u003c') %>;
+    var dlg = document.getElementById('lightbox'), img = dlg.querySelector('img'), cap = dlg.querySelector('figcaption'), i = 0;
+    function show(n) { i = (n + photos.length) % photos.length; img.src = photos[i].src; img.alt = photos[i].caption; cap.textContent = photos[i].caption + (photos.length > 1 ? '  (' + (i + 1) + ' / ' + photos.length + ')' : ''); }
+    document.querySelectorAll('.gallery .shot').forEach(function (b) { b.addEventListener('click', function () { show(+b.dataset.index); dlg.showModal(); }); });
+    dlg.querySelector('.lb-prev').onclick = function () { show(i - 1); };
+    dlg.querySelector('.lb-next').onclick = function () { show(i + 1); };
+    dlg.querySelector('.lb-close').onclick = function () { dlg.close(); };
+    dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+    document.addEventListener('keydown', function (e) { if (!dlg.open) return; if (e.key === 'ArrowLeft') show(i - 1); if (e.key === 'ArrowRight') show(i + 1); });
+    if (photos.length < 2) { dlg.querySelector('.lb-prev').hidden = true; dlg.querySelector('.lb-next').hidden = true; }
+  })();
+</script>
+<% } %>
 
 <%- include('partials/footer') %>

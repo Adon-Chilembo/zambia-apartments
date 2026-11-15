@@ -82,7 +82,8 @@ function requireRole(role) {
 function activeTenancy(tenantId) {
   return get(
     `SELECT t.id AS tenancy_id, t.start_date, t.occupants, t.household_note,
-            a.*, l.name AS landlord_name, l.email AS landlord_email, l.phone AS landlord_phone
+            a.*, l.name AS landlord_name, l.email AS landlord_email, l.phone AS landlord_phone,
+            (SELECT filename FROM apartment_photos p WHERE p.apartment_id = a.id ORDER BY sort_order, id LIMIT 1) AS cover
        FROM tenancies t
        JOIN apartments a ON a.id = t.apartment_id
        JOIN users l ON l.id = a.landlord_id
@@ -105,6 +106,18 @@ function people(n) {
   if (!n) return 'Not given';
   return n === 1 ? '1 person' : `${n} people`;
 }
+
+/** What to search the map for: the private address if given, otherwise the area. */
+function mapQuery(apt, { includeAddress = true } = {}) {
+  const parts = [];
+  for (const p of [includeAddress && apt.address, apt.neighbourhood, apt.city, 'Zambia']) {
+    // Skip a part the earlier text already mentions (e.g. an address that already names the neighbourhood).
+    if (p && !parts.join(', ').toLowerCase().includes(String(p).toLowerCase())) parts.push(p);
+  }
+  return parts.join(', ');
+}
+const mapEmbedUrl = (apt, opts) => 'https://maps.google.com/maps?q=' + encodeURIComponent(mapQuery(apt, opts)) + '&z=15&output=embed';
+const mapLink = (apt, opts) => 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(mapQuery(apt, opts));
 
 const ISSUE_CATEGORIES = ['Plumbing', 'Electrical', 'Power / load-shedding', 'Water supply', 'Security', 'Pests', 'Appliances', 'Cleaning', 'Structure / roof', 'Noise / neighbours', 'Other'];
 
@@ -136,6 +149,9 @@ module.exports = {
   MAX_OCCUPANTS,
   parseOccupants,
   people,
+  mapQuery,
+  mapEmbedUrl,
+  mapLink,
   ISSUE_CATEGORIES,
   STATUS_LABEL,
 };

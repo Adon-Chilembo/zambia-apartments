@@ -2,19 +2,31 @@
 <% const a = apartment; const openIssues = issues.filter(i => i.status !== 'resolved').length; const base = '/landlord/apartments/' + a.id; %>
 
 <p class="small"><a href="/landlord">← Dashboard</a></p>
-<div class="page-head">
-  <div>
-    <h1><%= a.title %> <%- include('../partials/status', { s: a.status }) %></h1>
-    <p class="muted"><%= a.neighbourhood %>, <%= a.city %> · <%= a.bedrooms %> bed · <%= a.bathrooms %> bath · <%= h.money(a.rent_amount) %>/month</p>
+<section class="house-head">
+  <div class="bgimg">
+    <% if (photos[0]) { %><img src="/uploads/<%= photos[0].filename %>" alt="<%= photos[0].caption || a.title %>">
+    <% } else { %><%- include('../partials/apt-illustration', { apt: a, idSuffix: 'head' }) %><% } %>
   </div>
-  <a class="btn secondary" href="/apartments/<%= a.id %>">View public listing</a>
-</div>
+  <div class="inner">
+    <div>
+      <span class="badge <%= a.status === 'occupied' ? 'gold' : 'green' %>"><%= a.status === 'occupied' ? 'Rented' + (tenant ? ' to ' + tenant.name : '') : 'Available' %></span>
+      <h1><%= a.title %></h1>
+      <div class="area">📍 <%= a.neighbourhood %>, <%= a.city %><%= a.address ? ' · ' + a.address : '' %></div>
+      <div class="tiny" style="color:rgba(255,255,255,.8);margin-top:4px"><%= a.bedrooms %> bed · <%= a.bathrooms %> bath · <%= h.money(a.rent_amount) %>/month</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <% if (!photos.length) { %><a class="btn sm gold" href="<%= base %>?tab=photos">Add a main photo</a><% } %>
+      <a class="btn sm glass" href="/apartments/<%= a.id %>">View public listing</a>
+    </div>
+  </div>
+</section>
 
 <nav class="tabs">
   <a href="<%= base %>" class="<%= tab === 'tenant' ? 'active' : '' %>">Tenant</a>
   <a href="<%= base %>?tab=issues" class="<%= tab === 'issues' ? 'active' : '' %>">Problems &amp; suggestions <span class="count"><%= openIssues %></span></a>
   <a href="<%= base %>?tab=payments" class="<%= tab === 'payments' ? 'active' : '' %>">Payments <span class="count"><%= payments.length %></span></a>
-  <a href="<%= base %>?tab=edit" class="<%= tab === 'edit' ? 'active' : '' %>">Edit listing</a>
+  <a href="<%= base %>?tab=photos" class="<%= tab === 'photos' ? 'active' : '' %>">Photos <span class="count"><%= photos.length %></span></a>
+  <a href="<%= base %>?tab=edit" class="<%= tab === 'edit' ? 'active' : '' %>">Edit listing &amp; services</a>
 </nav>
 
 <% if (tab === 'tenant') { %>
@@ -95,6 +107,18 @@
       </div>
     </div>
   <% } %>
+  <div class="card map-card" style="margin-top:18px">
+    <div class="card-head">
+      <div>
+        <h3>Where it is</h3>
+        <div class="tiny">📍 <%= h.mapQuery(a) %></div>
+      </div>
+      <a class="btn sm secondary" href="<%= h.mapLink(a) %>" target="_blank" rel="noopener">Open in Google Maps</a>
+    </div>
+    <iframe src="<%= h.mapEmbedUrl(a) %>" title="Map of <%= a.neighbourhood %>, <%= a.city %>" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    <% if (!a.address) { %><div class="card-body tiny">Showing the neighbourhood. <a href="<%= base %>?tab=edit">Add the street address</a> to pin the exact house.</div><% } %>
+  </div>
+
   <% if (pastTenants.length) { %>
     <div class="card" style="margin-top:18px">
       <div class="card-head"><h3>Past tenants</h3></div>
@@ -136,8 +160,54 @@
   </div>
 <% } %>
 
+<% if (tab === 'photos') { %>
+  <div class="card pad" style="margin-bottom:18px">
+    <h2>Add photos</h2>
+    <p class="muted small" style="margin-bottom:14px">Show tenants the rooms and the area: bedrooms, kitchen, bathroom, the yard, parking, the view. The first photo is the cover on the listings. JPG, PNG or WebP, up to <%= uploadLimits.MAX_FILE_MB %> MB each, <%= uploadLimits.MAX_FILES_PER_UPLOAD %> at a time.</p>
+    <form method="post" action="<%= base %>/photos?_csrf=<%= csrf %>" enctype="multipart/form-data" class="dropzone">
+      <div class="row">
+        <div class="field"><label for="photos">Photos</label><input type="file" id="photos" name="photos" accept="image/jpeg,image/png,image/webp" multiple required></div>
+        <div class="field"><label for="caption">Caption <span class="tiny">(optional, for this batch)</span></label><input type="text" id="caption" name="caption" maxlength="120" placeholder="e.g. Main bedroom, Kitchen, Garden"></div>
+      </div>
+      <button class="btn">Upload photos</button>
+    </form>
+  </div>
+
+  <% if (!photos.length) { %>
+    <div class="card empty">No photos yet. Listings with photos get far more interest.</div>
+  <% } else { %>
+    <div class="photo-grid">
+      <% photos.forEach((p, i) => { %>
+        <div class="card photo-item">
+          <div class="thumb">
+            <img src="/uploads/<%= p.filename %>" alt="<%= p.caption || 'Apartment photo' %>" loading="lazy">
+            <% if (i === 0) { %><span class="badge solid plain">★ Cover photo</span><% } %>
+          </div>
+          <div class="pbody">
+            <form class="cap-form" method="post" action="/landlord/photos/<%= p.id %>/caption">
+              <input type="hidden" name="_csrf" value="<%= csrf %>">
+              <input type="text" name="caption" value="<%= p.caption || '' %>" maxlength="120" placeholder="Add a caption" aria-label="Caption">
+              <button class="btn sm secondary">Save</button>
+            </form>
+            <div class="pactions">
+              <% if (i > 0) { %>
+                <form class="inline-form" method="post" action="/landlord/photos/<%= p.id %>/cover"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm secondary">★ Make cover</button></form>
+                <form class="inline-form" method="post" action="/landlord/photos/<%= p.id %>/move"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="direction" value="up"><button class="btn sm secondary" aria-label="Move earlier">←</button></form>
+              <% } %>
+              <% if (i < photos.length - 1) { %>
+                <form class="inline-form" method="post" action="/landlord/photos/<%= p.id %>/move"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="direction" value="down"><button class="btn sm secondary" aria-label="Move later">→</button></form>
+              <% } %>
+              <form class="inline-form" method="post" action="/landlord/photos/<%= p.id %>/delete" onsubmit="return confirm('Remove this photo?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm danger">Remove</button></form>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+<% } %>
+
 <% if (tab === 'edit') { %>
-  <div class="card pad" style="max-width:760px">
+  <div class="card pad" style="max-width:860px">
     <%- include('apartment-form', { apartment: a }) %>
   </div>
 <% } %>
