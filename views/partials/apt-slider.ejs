@@ -1,0 +1,21 @@
+<%# Photo slideshow for a listing card. Expects: apt (with apt.photos), href %>
+<div class="apt-img slider" data-slider data-href="<%= href %>">
+  <div class="slides" aria-label="Photos of <%= apt.title %>">
+    <% apt.photos.forEach((p, i) => { %>
+      <% if (i === 0) { %>
+        <img src="<%= h.photoSrc(p, 'thumb') %>" alt="<%= apt.title %>, photo 1 of <%= apt.photos.length %>" loading="lazy">
+      <% } else { %>
+        <img data-src="<%= h.photoSrc(p, 'thumb') %>" alt="<%= apt.title %>, photo <%= i + 1 %> of <%= apt.photos.length %>">
+      <% } %>
+    <% }) %>
+  </div>
+  <span class="badge badge-on <%= apt.status === 'available' ? 'green' : 'gold' %>"><%= apt.status === 'available' ? 'Vacant' : 'Occupied' %></span>
+  <span class="price-tag"><%= h.money(apt.rent_amount) %> <small>/ month</small></span>
+  <button type="button" class="sl-btn sl-prev" aria-label="Previous photo">‹</button>
+  <button type="button" class="sl-btn sl-next" aria-label="Next photo">›</button>
+  <% if (apt.photos.length <= 8) { %>
+    <span class="sl-dots" aria-hidden="true"><% apt.photos.forEach((p, i) => { %><i class="<%= i === 0 ? 'on' : '' %>"></i><% }) %></span>
+  <% } else { %>
+    <span class="sl-count">1 / <%= apt.photos.length %></span>
+  <% } %>
+</div>

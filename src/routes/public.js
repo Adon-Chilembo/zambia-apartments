@@ -8,6 +8,9 @@ const router = express.Router();
 // The cover photo is the apartment's first photo by sort order.
 const COVER_SQL = '(SELECT filename FROM apartment_photos p WHERE p.apartment_id = a.id ORDER BY sort_order, id LIMIT 1) AS cover';
 const PHOTO_COUNT_SQL = '(SELECT COUNT(*) FROM apartment_photos p WHERE p.apartment_id = a.id) AS photo_count';
+// All of an apartment's photos in order, for the slideshow on the listing cards.
+const PHOTO_LIST_SQL = `(SELECT group_concat(filename, char(10)) FROM
+    (SELECT filename FROM apartment_photos p WHERE p.apartment_id = a.id ORDER BY sort_order, id)) AS photo_list`;
 
 router.get('/', (req, res) => {
   const { q = '', city = '', bedrooms = '', max_rent = '' } = req.query;
@@ -31,11 +34,11 @@ router.get('/', (req, res) => {
     params.push(Number(max_rent));
   }
   const apartments = all(
-    `SELECT a.*, u.name AS landlord_name, ${COVER_SQL}, ${PHOTO_COUNT_SQL}
+    `SELECT a.*, u.name AS landlord_name, ${COVER_SQL}, ${PHOTO_COUNT_SQL}, ${PHOTO_LIST_SQL}
        FROM apartments a JOIN users u ON u.id = a.landlord_id
       WHERE ${where.join(' AND ')} ORDER BY (a.status = 'available') DESC, a.created_at DESC, a.id DESC`,
     ...params
-  ).map((a) => ({ ...a, serviceList: parseServices(a.services) }));
+  ).map((a) => ({ ...a, serviceList: parseServices(a.services), photos: a.photo_list ? a.photo_list.split('\n') : [] }));
   const cities = all('SELECT DISTINCT city FROM apartments ORDER BY city').map((r) => r.city);
   const counts = get(
     `SELECT COUNT(*) AS total, COUNT(DISTINCT city) AS cities, COUNT(DISTINCT landlord_id) AS landlords,

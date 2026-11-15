@@ -92,10 +92,14 @@
     <% } else { %>
       <div class="listing-grid">
         <% apartments.forEach(apt => { %>
-          <a class="card listing <%= apt.status === 'occupied' ? 'is-occupied' : '' %>" href="/apartments/<%= apt.id %>">
-            <%- include('partials/apt-image', { apt, showPrice: true, showVacancy: true }) %>
+          <article class="card listing <%= apt.status === 'occupied' ? 'is-occupied' : '' %>">
+            <% if (apt.photos.length > 1) { %>
+              <%- include('partials/apt-slider', { apt, href: '/apartments/' + apt.id }) %>
+            <% } else { %>
+              <%- include('partials/apt-image', { apt, showPrice: true, showVacancy: true }) %>
+            <% } %>
             <div class="body">
-              <div class="title"><%= apt.title %></div>
+              <a class="title stretched" href="/apartments/<%= apt.id %>"><%= apt.title %></a>
               <div class="muted small">📍 <%= apt.neighbourhood %>, <%= apt.city %></div>
               <div class="facts" style="margin-top:4px">
                 <span>🛏 <%= apt.bedrooms %> bed</span>
@@ -103,9 +107,50 @@
               </div>
               <% if (apt.status === 'occupied') { %><div class="occupied-note">🔒 Occupied, not available right now</div><% } %>
             </div>
-          </a>
+          </article>
         <% }) %>
       </div>
+      <script>
+        // Photo slideshows on the listing cards: swipe on phones, arrows on computers, dots show position.
+        // Photos after the first load only when they are about to be shown.
+        document.querySelectorAll('[data-slider]').forEach(function (sl) {
+          var track = sl.querySelector('.slides'), imgs = Array.prototype.slice.call(track.children);
+          var dots = Array.prototype.slice.call(sl.querySelectorAll('.sl-dots i')), counter = sl.querySelector('.sl-count');
+          var n = imgs.length, i = 0, target = null;
+          function load(k) { var im = imgs[(k + n) % n]; if (im && im.dataset.src) { im.src = im.dataset.src; im.removeAttribute('data-src'); } }
+          function mark(k) {
+            dots.forEach(function (d, j) { d.classList.toggle('on', j === k); });
+            if (counter) counter.textContent = (k + 1) + ' / ' + n;
+          }
+          // Arrow clicks set the target straight away, so quick repeated clicks each move one photo.
+          function go(k) {
+            k = (k + n) % n; i = k; target = k;
+            load(k); load(k + 1); mark(k);
+            track.scrollTo({ left: k * track.clientWidth, behavior: 'smooth' });
+            // Safety net: if the animation is cut short (busy phone, hidden tab), jump to the photo.
+            setTimeout(function () {
+              if (target === k && Math.abs(track.scrollLeft - k * track.clientWidth) > 2) {
+                track.scrollTo({ left: k * track.clientWidth, behavior: 'instant' });
+                target = null;
+              }
+            }, 700);
+          }
+          track.addEventListener('scroll', function () {
+            if (target !== null) {
+              if (Math.abs(track.scrollLeft - target * track.clientWidth) < 2) target = null;
+              return; // still animating to the arrow's target
+            }
+            var k = Math.round(track.scrollLeft / track.clientWidth); // swiped by hand
+            if (k !== i) { i = k; load(k); load(k + 1); mark(k); }
+          }, { passive: true });
+          track.addEventListener('touchstart', function () { target = null; }, { passive: true });
+          sl.querySelector('.sl-prev').addEventListener('click', function (e) { e.preventDefault(); go(i - 1); });
+          sl.querySelector('.sl-next').addEventListener('click', function (e) { e.preventDefault(); go(i + 1); });
+          track.addEventListener('click', function () { location.href = sl.dataset.href; });
+          ['pointerenter', 'touchstart', 'focusin'].forEach(function (ev) { sl.addEventListener(ev, function () { load(1); }, { once: true, passive: true }); });
+          window.addEventListener('resize', function () { track.scrollLeft = i * track.clientWidth; });
+        });
+      </script>
     <% } %>
   </section>
 
