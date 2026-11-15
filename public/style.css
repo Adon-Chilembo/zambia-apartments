@@ -199,7 +199,7 @@ main.bare { padding-top: 0; }
 .hero-search { position: relative; z-index: 2; margin-top: -70px; }
 
 .filters { display: grid; gap: 10px; grid-template-columns: 1fr; padding: 16px; margin-bottom: 22px; }
-@media (min-width: 760px) { .filters { grid-template-columns: 2fr 1fr 1fr 1fr auto; align-items: end; } }
+@media (min-width: 760px) { .filters { grid-template-columns: 1fr 1fr 1fr auto; align-items: end; } }
 .filters label { font-size: 0.76rem; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.06em; }
 
 .chip-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 6px 0 0; }
