@@ -4,7 +4,7 @@
 <!-- Hero with cover photo -->
 <section class="apt-hero">
   <div class="bgimg">
-    <% if (cover) { %><img src="/uploads/<%= cover.filename %>" alt="<%= cover.caption || a.title %>">
+    <% if (cover) { %><img src="<%= h.photoSrc(cover.filename) %>" srcset="<%= h.photoSrcset(cover.filename) %>" sizes="100vw" fetchpriority="high" alt="<%= cover.caption || a.title %>">
     <% } else if (a.image_url) { %><img src="<%= a.image_url %>" alt="<%= a.title %>">
     <% } else { %><%- include('partials/apt-illustration', { apt: a, idSuffix: 'hero' }) %><% } %>
   </div>
@@ -52,7 +52,7 @@
           <div class="gallery" style="margin-top:16px">
             <% photos.forEach((p, i) => { %>
               <button type="button" class="shot <%= i === 0 && photos.length > 2 ? 'wide' : '' %>" data-index="<%= i %>" aria-label="View photo: <%= p.caption || 'Photo ' + (i + 1) %>">
-                <img src="/uploads/<%= p.filename %>" alt="<%= p.caption || a.title %>" loading="lazy">
+                <img src="<%= h.photoSrc(p.filename, 'thumb') %>" alt="<%= p.caption || a.title %>" loading="lazy">
                 <% if (p.caption) { %><span class="cap"><%= p.caption %></span><% } %>
               </button>
             <% }) %>
@@ -121,9 +121,16 @@
 </dialog>
 <script>
   (function () {
-    var photos = <%- JSON.stringify(photos.map(p => ({ src: '/uploads/' + p.filename, caption: p.caption || '' }))).replace(/</g, '\\u003c') %>;
+    var photos = <%- JSON.stringify(photos.map(p => ({ src: h.photoSrc(p.filename), thumb: h.photoSrc(p.filename, 'thumb'), caption: p.caption || '' }))).replace(/</g, '\\u003c') %>;
     var dlg = document.getElementById('lightbox'), img = dlg.querySelector('img'), cap = dlg.querySelector('figcaption'), i = 0;
-    function show(n) { i = (n + photos.length) % photos.length; img.src = photos[i].src; img.alt = photos[i].caption; cap.textContent = photos[i].caption + (photos.length > 1 ? '  (' + (i + 1) + ' / ' + photos.length + ')' : ''); }
+    function show(n) {
+      i = (n + photos.length) % photos.length;
+      var p = photos[i], want = i;
+      // Show the small photo (already loaded on the page) at once, then swap in the full-size one when ready.
+      img.src = p.thumb; img.alt = p.caption;
+      if (p.src !== p.thumb) { var full = new Image(); full.onload = function () { if (i === want) img.src = p.src; }; full.src = p.src; }
+      cap.textContent = p.caption + (photos.length > 1 ? '  (' + (i + 1) + ' / ' + photos.length + ')' : '');
+    }
     document.querySelectorAll('.gallery .shot').forEach(function (b) { b.addEventListener('click', function () { show(+b.dataset.index); dlg.showModal(); }); });
     dlg.querySelector('.lb-prev').onclick = function () { show(i - 1); };
     dlg.querySelector('.lb-next').onclick = function () { show(i + 1); };

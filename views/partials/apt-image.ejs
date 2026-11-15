@@ -1,7 +1,7 @@
 <%# Listing image: cover photo, else the drawn placeholder. Expects: apt; optional showStatus, showPrice %>
 <div class="apt-img">
   <% if (apt.cover) { %>
-    <img src="/uploads/<%= apt.cover %>" alt="<%= apt.title %>" loading="lazy">
+    <img src="<%= h.photoSrc(apt.cover, 'thumb') %>" alt="<%= apt.title %>" loading="lazy">
   <% } else if (apt.image_url) { %>
     <img src="<%= apt.image_url %>" alt="<%= apt.title %>" loading="lazy">
   <% } else { %>

@@ -4,7 +4,7 @@
 <p class="small"><a href="/landlord">← Dashboard</a></p>
 <section class="house-head">
   <div class="bgimg">
-    <% if (photos[0]) { %><img src="/uploads/<%= photos[0].filename %>" alt="<%= photos[0].caption || a.title %>">
+    <% if (photos[0]) { %><img src="<%= h.photoSrc(photos[0].filename) %>" srcset="<%= h.photoSrcset(photos[0].filename) %>" sizes="(max-width: 1180px) 100vw, 1180px" fetchpriority="high" alt="<%= photos[0].caption || a.title %>">
     <% } else { %><%- include('../partials/apt-illustration', { apt: a, idSuffix: 'head' }) %><% } %>
   </div>
   <div class="inner">
@@ -180,7 +180,7 @@
       <% photos.forEach((p, i) => { %>
         <div class="card photo-item">
           <div class="thumb">
-            <img src="/uploads/<%= p.filename %>" alt="<%= p.caption || 'Apartment photo' %>" loading="lazy">
+            <img src="<%= h.photoSrc(p.filename, 'thumb') %>" alt="<%= p.caption || 'Apartment photo' %>" loading="lazy">
             <% if (i === 0) { %><span class="badge solid plain">★ Cover photo</span><% } %>
           </div>
           <div class="pbody">

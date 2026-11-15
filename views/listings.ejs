@@ -9,7 +9,7 @@
     <div class="hero-inner">
       <span class="pill"><span class="dot"></span>Homes across Zambia</span>
       <h1 class="hero-title">Find your next home in <span class="accent">Zambia</span></h1>
-      <p class="hero-sub">Apartments listed directly by landlords in Lusaka, the Copperbelt and Livingstone. Move in, report problems and pay rent with Mobile Money, all in one place.</p>
+      <p class="hero-sub">Apartments and houses listed directly by landlords in <%= cities.length > 1 ? cities.slice(0, -1).join(', ') + ' and ' + cities[cities.length - 1] : 'Zambia' %>. Move in, report problems and pay rent with Mobile Money, all in one place.</p>
       <div class="hero-cta">
         <a class="btn lg" href="#listings">Browse apartments</a>
         <a class="btn lg glass" href="<%= ctaHref %>"><%= ctaText %></a>

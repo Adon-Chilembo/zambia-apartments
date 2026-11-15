@@ -72,7 +72,7 @@
       <% apartments.forEach(a => { %>
         <a class="card listing house-card" href="/landlord/apartments/<%= a.id %>">
           <div class="apt-img">
-            <% if (a.cover) { %><img src="/uploads/<%= a.cover %>" alt="<%= a.title %>" loading="lazy">
+            <% if (a.cover) { %><img src="<%= h.photoSrc(a.cover, 'thumb') %>" alt="<%= a.title %>" loading="lazy">
             <% } else { %><div class="ph"><%- include('../partials/apt-illustration', { apt: a, idSuffix: 'dash' }) %></div><% } %>
             <span class="badge badge-on <%= a.status === 'occupied' ? 'gold' : 'green' %>"><%= a.status === 'occupied' ? 'Rented' : 'Available' %></span>
             <span class="price-tag"><%= h.money(a.rent_amount) %> <small>/ month</small></span>

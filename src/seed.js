@@ -16,6 +16,7 @@ if (fs.existsSync(uploadDir)) {
 const bcrypt = require('bcryptjs');
 const { run, transaction } = require('./db');
 const { currentPeriod } = require('./helpers');
+const { DEMO_PHOTOS, demoPhotoFile } = require('./demo-photos');
 
 // Demo accounts all share this password (see README).
 const DEMO_PASSWORD = 'demo1234';
@@ -134,7 +135,159 @@ transaction(() => {
     'Hello, I have just started a new job in town and would like to move in at the start of next month. I am quiet and tidy.',
     1, 'Just me', daysAgo(1));
   run("INSERT INTO invites (code, apartment_id, landlord_id, tenant_name) VALUES ('LSK1-2026', ?, ?, 'New tenant')", a2, mwila);
-  void a3; void a5; void a7; void a8; void a9;
+
+  // ---- Photos -------------------------------------------------------------
+  // Demo photos are files in public/demo-photos (see src/demo-photos.js). Two of Mwila's
+  // listings (the Rhodes Park studio and the Ibex Hill townhouse) are left without
+  // photos on purpose, to show the "add photos" prompts.
+  let photoTurn = 0;
+  const pick = (list) => list[photoTurn % list.length];
+  const addPhotos = (aptId, kind) => {
+    const set = [
+      [pick(DEMO_PHOTOS[kind]), kind === 'houses' ? 'Front of the house' : 'The building'],
+      [pick(DEMO_PHOTOS.living), 'Living room'],
+      [pick(DEMO_PHOTOS.bedroom), 'Main bedroom'],
+      [pick(DEMO_PHOTOS.kitchen), 'Kitchen'],
+      [pick(DEMO_PHOTOS.bathroom), 'Bathroom'],
+    ];
+    if (photoTurn % 3 === 0) set.push([pick(DEMO_PHOTOS.outdoor), 'Outside seating area']);
+    set.forEach(([id, caption], i) =>
+      run('INSERT INTO apartment_photos (apartment_id, filename, caption, sort_order) VALUES (?, ?, ?, ?)', aptId, demoPhotoFile(id), caption, i)
+    );
+    photoTurn++;
+  };
+  addPhotos(a1, 'blocks');
+  addPhotos(a4, 'blocks');
+  addPhotos(a5, 'blocks');
+  addPhotos(a6, 'houses');
+  addPhotos(a7, 'houses');
+  addPhotos(a8, 'blocks');
+  addPhotos(a9, 'houses');
+  void a3;
+
+  // ---- Eight more landlords, each with three homes (two rented) -----------
+  // A tiny seeded random generator so the demo data is the same on every run.
+  let rngState = 20261115;
+  const rand = () => ((rngState = (rngState * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const choose = (arr) => arr[Math.floor(rand() * arr.length)];
+
+  const prefixes = { mtn: ['096', '076'], airtel: ['097', '077'], zamtel: ['095'] };
+  let phoneNo = 700;
+  const phoneFor = (network) => `${choose(prefixes[network])} 555 ${String(++phoneNo).padStart(4, '0')}`;
+
+  const LANDLORDS = [
+    { name: 'Chipo Sakala', email: 'chipo', city: 'Lusaka', homes: [
+      ['Garden 3-bedroom house', 'Woodlands', 3, 2, 11000, 'houses', 'Plot 45, Chindo Road', 'internet,solar,borehole,security,fence,parking,garden,staff_quarters'],
+      ['Modern 2-bedroom flat', 'Roma', 2, 2, 8500, 'blocks', 'Roma Park, Zambezi Road', 'internet,solar,water_tank,security,cctv,parking,balcony'],
+      ['Bedsitter near UNZA', 'Roma', 1, 1, 3200, 'blocks', null, 'internet,water,security,prepaid_meter'],
+    ]},
+    { name: 'Mulenga Chileshe', email: 'mulenga', city: 'Kitwe', homes: [
+      ['Family house in Nkana East', 'Nkana East', 3, 2, 7000, 'houses', 'Mukuba Road, Nkana East', 'borehole,security,fence,parking,garden,generator'],
+      ['Riverside 2-bedroom flat', 'Riverside', 2, 1, 4800, 'blocks', null, 'internet,water_tank,security,parking'],
+      ['Townhouse near Copperbelt University', 'Riverside', 2, 2, 5600, 'blocks', 'Jambo Drive, Riverside', 'internet,solar,security,cctv,parking,laundry'],
+    ]},
+    { name: 'Lweendo Hamoonga', email: 'lweendo', city: 'Livingstone', homes: [
+      ['Cottage near Victoria Falls', 'Nottie Broadie', 2, 1, 5200, 'houses', 'Nottie Broadie, off Mosi-oa-Tunya Road', 'aircon,garden,parking,solar,internet'],
+      ['3-bedroom house in Libuyu', 'Libuyu', 3, 2, 6800, 'houses', null, 'borehole,security,fence,parking,garden'],
+      ['Studio flat in town', 'Dambwa', 1, 1, 2600, 'blocks', null, 'internet,furnished,water,security'],
+    ]},
+    { name: 'Thandiwe Ngoma', email: 'thandiwe', city: 'Ndola', homes: [
+      ['Executive house in Kansenshi', 'Kansenshi', 4, 3, 13500, 'houses', 'Kansenshi, near Ndola Golf Club', 'internet,solar,generator,borehole,security,cctv,fence,parking,garden,staff_quarters'],
+      ['2-bedroom flat in Itawa', 'Itawa', 2, 1, 4200, 'blocks', null, 'water_tank,security,parking,prepaid_meter'],
+      ['Garden flat in Northrise', 'Northrise', 2, 2, 5900, 'blocks', 'Northrise, Kabompo Road', 'garden,security,borehole,parking,internet'],
+    ]},
+    { name: 'Kalaba Musonda', email: 'kalaba', city: 'Kabwe', homes: [
+      ['3-bedroom house in Highridge', 'Highridge', 3, 2, 5000, 'houses', null, 'borehole,security,fence,parking,garden'],
+      ['Flat near Kabwe town centre', 'Bwacha', 2, 1, 3000, 'blocks', null, 'water_tank,prepaid_meter,security'],
+      ['Family house in Bwacha', 'Bwacha', 3, 1, 3800, 'houses', 'Bwacha, near Kabwe General Hospital', 'borehole,parking,garden,fence'],
+    ]},
+    { name: 'Nchimunya Mweemba', email: 'nchimunya', city: 'Lusaka', homes: [
+      ['Furnished 2-bedroom in Olympia', 'Olympia', 2, 2, 9800, 'blocks', 'Olympia Park, Mosi-oa-Tunya Road', 'internet,starlink,furnished,solar,security,cctv,parking,aircon'],
+      ['Avondale family house', 'Avondale', 4, 2, 9000, 'houses', null, 'borehole,solar,security,fence,parking,garden,staff_quarters'],
+      ['Shared student room', 'Kalingalinga', 1, 1, 1800, 'blocks', null, 'internet,water,security,cleaning,lounge'],
+    ]},
+    { name: 'Mwansa Bwalya', email: 'mwansa', city: 'Chingola', homes: [
+      ['Mine-side 3-bedroom house', 'Nchanga North', 3, 2, 6200, 'houses', 'Nchanga North, near the golf course', 'borehole,generator,security,fence,parking,garden'],
+      ['Compact 1-bedroom flat', 'Kabundi', 1, 1, 2400, 'blocks', null, 'water_tank,prepaid_meter,security'],
+      ['2-bedroom flat with parking', 'Nchanga South', 2, 1, 3900, 'blocks', null, 'parking,security,water_tank,internet'],
+    ]},
+    { name: 'Sibongile Lungu', email: 'sibongile', city: 'Chipata', homes: [
+      ['Hillside 3-bedroom house', 'Hillside', 3, 2, 5500, 'houses', 'Hillside, near Chipata Golf Club', 'borehole,solar,security,fence,parking,garden'],
+      ['Moth 2-bedroom house', 'Moth', 2, 1, 3500, 'houses', null, 'borehole,parking,garden,prepaid_meter'],
+      ['Town flat near the market', 'Kanjala', 1, 1, 2200, 'blocks', null, 'water_tank,security,prepaid_meter'],
+    ]},
+  ];
+
+  const TENANTS = [
+    ['Chilufya Mumba', 'Nurse, Levy Mwanawasa Hospital'], ['Lubinda Mubita', 'Civil engineer'],
+    ['Inonge Sitali', 'Bank teller'], ['Musonda Kangwa', 'Mining technician'],
+    ['Twaambo Hamweemba', 'Accountant'], ['Kelvin Banda', 'Police officer'],
+    ['Mirriam Phiri', 'Shop owner'], ['Joseph Mwape', 'Lecturer'],
+    ['Grace Nyirenda', 'Pharmacist'], ['Emmanuel Zimba', 'Driver'],
+    ['Ruth Chisanga', 'Teacher'], ['Brian Simwanza', 'IT support'],
+    ['Esther Kabaso', 'Nurse'], ['Moses Tembo', 'Electrician'],
+    ['Precious Mwale', 'Student, UNZA'], ['Daniel Siame', 'Agronomist'],
+  ];
+  const HOUSEHOLDS = [
+    [1, 'Just me'], [2, 'My husband'], [2, 'My wife'], [3, 'My wife and our baby'],
+    [4, 'My husband and our two children'], [5, 'My wife, our three children'], [2, 'My younger brother'],
+    [3, 'My sister and her son'], [6, 'My wife, four children and my mother'], [1, 'Just me, working nights'],
+  ];
+  const ISSUES = [
+    ['problem', 'Plumbing', 'Toilet keeps running', 'The toilet cistern never stops filling.', 'normal'],
+    ['problem', 'Power / load-shedding', 'Inverter not charging', 'The backup batteries are not charging when ZESCO power is on.', 'urgent'],
+    ['problem', 'Security', 'Gate motor broken', 'The electric gate has to be pushed open by hand.', 'normal'],
+    ['problem', 'Water supply', 'Low water pressure', 'Very low pressure in the shower in the mornings.', 'low'],
+    ['problem', 'Structure / roof', 'Roof leaking in the rain', 'Water comes through the ceiling in the second bedroom when it rains.', 'urgent'],
+    ['problem', 'Pests', 'Termites near the back door', 'There are termite trails on the wooden door frame.', 'normal'],
+    ['improvement', 'Security', 'Security light at the gate', 'A motion-sensor light at the gate would help at night.', 'low'],
+    ['improvement', 'Other', 'Shade net for the car park', 'The car gets very hot in October; a shade net would help.', 'low'],
+    ['improvement', 'Appliances', 'Replace the old geyser', 'The geyser takes very long to heat; a solar geyser would save power.', 'low'],
+  ];
+  const RESPONSES = ['A technician is coming this week.', 'Fixed on Saturday. Let me know if it happens again.', 'Good idea, I will budget for it next month.'];
+  const STARTS = ['2025-11-01', '2026-01-01', '2026-02-15', '2026-04-01', '2026-05-01', '2026-07-01', '2026-08-15'];
+
+  let tenantIdx = 0;
+  LANDLORDS.forEach((l, li) => {
+    const lid = user(l.name, `${l.email}@landlord.test`, phoneFor(choose(['mtn', 'airtel', 'zamtel'])), 'landlord');
+    l.homes.forEach(([title, hood, bed, bath, rent, kind, addr, svcKeys], hi) => {
+      const aptId = apt(lid, title, hood, l.city, bed, bath, rent,
+        `${title} in ${hood}, ${l.city}. Well kept, secure and close to shops and transport.`, '');
+      run('UPDATE apartments SET services = ?, address = ? WHERE id = ?', svcKeys, addr, aptId);
+      addPhotos(aptId, kind);
+      if (hi === 2) return; // third home stays available
+
+      // Two rented homes per landlord
+      const [tname, job] = TENANTS[tenantIdx++];
+      const first = tname.split(' ')[0].toLowerCase();
+      const network = choose(['mtn', 'airtel', 'zamtel']);
+      const phone = phoneFor(network);
+      const tid = user(tname, `${first}@tenant.test`, phone, 'tenant', job, `${choose(['Mother', 'Brother', 'Sister', 'Uncle'])} · ${phoneFor('mtn')}`);
+      const [occ, note] = choose(HOUSEHOLDS);
+      const start = choose(STARTS);
+      const tId = tenancy(aptId, tid, start, occ, note);
+
+      // Payment history from the start month to now; ~1 in 4 haven't paid this month yet
+      const months = Math.max(1, Math.min(8, Math.round((Date.now() - new Date(start)) / (30 * 864e5))));
+      const paidNow = rand() > 0.25;
+      for (let m = -months + 1; m <= 0; m++) {
+        if (m === 0 && !paidNow) {
+          if (rand() > 0.5) pay(tId, aptId, tid, rent, currentPeriod(0), network, phone, 'failed', 1);
+          continue;
+        }
+        pay(tId, aptId, tid, rent, currentPeriod(m), network, phone, 'success', 4 - m * 30 + Math.floor(rand() * 4));
+      }
+
+      // 0–2 issues each, in mixed states
+      const count = Math.floor(rand() * 3);
+      for (let k = 0; k < count; k++) {
+        const [kind2, cat, ititle, desc, urg] = choose(ISSUES);
+        const status = choose(['open', 'open', 'in_progress', 'resolved']);
+        issue(tId, aptId, tid, kind2, cat, ititle, desc, urg, status, status === 'open' ? null : choose(RESPONSES), 1 + Math.floor(rand() * 40));
+      }
+    });
+    void li;
+  });
 });
 
 console.log('Database seeded with demo data.');

@@ -21,18 +21,36 @@ npm start        # http://localhost:3000
 
 ## Demo accounts
 
-Every demo account uses the password `demo1234`.
+Every demo account uses the password `demo1234`. `npm run seed` creates **10 landlords** (33 homes, 19 rented) across 7 cities, with photos, services, addresses, tenants, households, payment history and issues.
 
-| Role | Email | What you'll see |
+| Landlord | Email | City |
 | --- | --- | --- |
-| Landlord | mwila@landlord.test | 5 apartments in Lusaka, 2 tenants, a pending application |
-| Landlord | chanda@landlord.test | 4 apartments in Kitwe, Ndola and Livingstone, 1 tenant |
-| Tenant | natasha@tenant.test | Lives in Kabulonga; paid up, with open issues |
-| Tenant | mutale@tenant.test | Lives in Chelstone; this month's payment failed, urgent water issue |
-| Tenant | bupe@tenant.test | Lives in Parklands, Kitwe |
-| Tenant | kondwani@tenant.test | Not connected yet; has applied for the Rhodes Park studio |
+| Mwila Banda | mwila@landlord.test | Lusaka: 5 homes, a pending application, 2 without photos |
+| Chanda Mulenga | chanda@landlord.test | Kitwe, Ndola, Livingstone |
+| Chipo Sakala | chipo@landlord.test | Lusaka |
+| Mulenga Chileshe | mulenga@landlord.test | Kitwe |
+| Lweendo Hamoonga | lweendo@landlord.test | Livingstone |
+| Thandiwe Ngoma | thandiwe@landlord.test | Ndola |
+| Kalaba Musonda | kalaba@landlord.test | Kabwe |
+| Nchimunya Mweemba | nchimunya@landlord.test | Lusaka |
+| Mwansa Bwalya | mwansa@landlord.test | Chingola |
+| Sibongile Lungu | sibongile@landlord.test | Chipata |
+
+Tenants log in as `<first name>@tenant.test`, for example:
+
+| Tenant | Email | Notes |
+| --- | --- | --- |
+| Natasha Phiri | natasha@tenant.test | Kabulonga (Mwila); paid up, open issues |
+| Mutale Zulu | mutale@tenant.test | Chelstone (Mwila); this month's payment failed |
+| Bupe Tembo | bupe@tenant.test | Kitwe (Chanda); household not given yet |
+| Kondwani Mwale | kondwani@tenant.test | Not connected; applied for the Rhodes Park studio |
+| Joseph Mwape | joseph@tenant.test | Itawa, Ndola (Thandiwe) |
+
+The others are chilufya, lubinda, inonge, musonda, twaambo, kelvin, mirriam, grace, emmanuel, ruth, brian, esther, moses, precious and daniel (`@tenant.test`).
 
 Invite code `LSK1-2026` connects a tenant to Mwila's Rhodes Park studio.
+
+Demo photos are free [Unsplash](https://unsplash.com) photos (Unsplash licence), saved in `public/demo-photos/` (about 11.5 MB). Credits are in `public/demo-photos/CREDITS.md`.
 
 ## How tenants get connected
 
@@ -72,7 +90,7 @@ Landlords upload photos on an apartment's **Photos** tab: JPG, PNG or WebP, up t
 
 **Hosting note:** free hosts such as Render's free tier wipe the disk on every deploy or restart, so uploaded photos (and the SQLite database) would be lost. Use a persistent disk, or move photos to cloud storage such as Cloudinary or S3, before going live.
 
-The landing-page background is a free photo from [Unsplash](https://unsplash.com) (photo `photo-1494526585095-c41746248156`, Unsplash licence). To use your own, set `HERO_IMAGE_URL` in `.env`, for example to a photo you put in `public/`: `HERO_IMAGE_URL=/static/hero.jpg`.
+The landing-page background is a free Unsplash photo saved as `public/demo-photos/hero-home-at-dusk.jpg` (Unsplash licence). To use your own, set `HERO_IMAGE_URL` in `.env`, for example to a photo you put in `public/`: `HERO_IMAGE_URL=/static/hero.jpg`.
 
 ## Settings (`.env`)
 
@@ -85,7 +103,7 @@ The landing-page background is a free photo from [Unsplash](https://unsplash.com
 | `PORT` | `3000` | Web server port |
 | `DB_PATH` | `data/zambia_apartments.db` | SQLite database file |
 | `UPLOAD_DIR` | `data/uploads` | Where uploaded photos are stored |
-| `HERO_IMAGE_URL` | Unsplash photo | Landing-page background image |
+| `HERO_IMAGE_URL` | `/static/demo-photos/hero-home-at-dusk.jpg` | Landing-page background image |
 
 ## Before going live
 

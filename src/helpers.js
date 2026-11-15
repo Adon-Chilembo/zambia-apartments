@@ -107,6 +107,27 @@ function people(n) {
   return n === 1 ? '1 person' : `${n} people`;
 }
 
+/**
+ * Address of a stored photo: uploaded photos are served from /uploads, demo photos from
+ * public/demo-photos ("demo/<file>.jpg"). Unsplash links are also accepted (only that host).
+ */
+function photoSrc(name, size = 'full') {
+  const s = String(name || '');
+  const demo = s.match(/^demo\/(photo-[\w-]+\.jpg)$/);
+  if (demo) return '/static/demo-photos/' + demo[1];
+  if (/^https:\/\/images\.unsplash\.com\/photo-[\w-]+\?/.test(s)) {
+    return s.replace(/([?&])w=\d+/, `$1w=${size === 'thumb' ? 700 : 1600}`);
+  }
+  return '/uploads/' + encodeURIComponent(s);
+}
+
+/** srcset for big header photos so phones download the smaller version. Empty for uploads. */
+function photoSrcset(name) {
+  const s = String(name || '');
+  if (!/^https:\/\/images\.unsplash\.com\//.test(s)) return '';
+  return `${photoSrc(s, 'thumb')} 700w, ${photoSrc(s)} 1600w`;
+}
+
 /** What to search the map for: the private address if given, otherwise the area. */
 function mapQuery(apt, { includeAddress = true } = {}) {
   const parts = [];
@@ -149,6 +170,8 @@ module.exports = {
   MAX_OCCUPANTS,
   parseOccupants,
   people,
+  photoSrc,
+  photoSrcset,
   mapQuery,
   mapEmbedUrl,
   mapLink,

@@ -11,7 +11,7 @@
       <div class="card listing tenant-card">
         <!-- The apartment they rent -->
         <a class="apt-img tenant-home" href="/landlord/apartments/<%= t.apartment_id %>" aria-label="Open <%= t.title %>">
-          <% if (t.cover) { %><img src="/uploads/<%= t.cover %>" alt="<%= t.title %>" loading="lazy">
+          <% if (t.cover) { %><img src="<%= h.photoSrc(t.cover, 'thumb') %>" alt="<%= t.title %>" loading="lazy">
           <% } else { %><div class="ph"><%- include('../partials/apt-illustration', { apt, idSuffix: 'ten' }) %></div><% } %>
           <span class="badge badge-on gold">Rented</span>
           <span class="home-label">

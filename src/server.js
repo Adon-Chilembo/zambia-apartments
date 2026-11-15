@@ -17,9 +17,9 @@ const services = require('./services');
 const uploads = require('./uploads');
 const multer = require('multer');
 
-// Landing-page background. Default: a free Unsplash photo (Unsplash licence). Override with HERO_IMAGE_URL.
-const HERO_IMAGE_URL =
-  process.env.HERO_IMAGE_URL || 'https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1920&q=70';
+// Landing-page background. Default: a free Unsplash photo (Unsplash licence) saved in public/demo-photos.
+// Override with HERO_IMAGE_URL.
+const HERO_IMAGE_URL = process.env.HERO_IMAGE_URL || '/static/demo-photos/hero-home-at-dusk.jpg';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;

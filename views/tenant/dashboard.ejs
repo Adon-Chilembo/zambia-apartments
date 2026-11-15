@@ -6,7 +6,7 @@
 
 <section class="house-head">
   <div class="bgimg">
-    <% if (home.cover) { %><img src="/uploads/<%= home.cover %>" alt="<%= home.title %>">
+    <% if (home.cover) { %><img src="<%= h.photoSrc(home.cover) %>" srcset="<%= h.photoSrcset(home.cover) %>" sizes="(max-width: 1180px) 100vw, 1180px" fetchpriority="high" alt="<%= home.title %>">
     <% } else { %><%- include('../partials/apt-illustration', { apt: home, idSuffix: 'home' }) %><% } %>
   </div>
   <div class="inner">
