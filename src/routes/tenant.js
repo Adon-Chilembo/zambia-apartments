@@ -2,6 +2,7 @@ const express = require('express');
 const { get, all, run, transaction } = require('../db');
 const { flash, requireRole, activeTenancy, currentPeriod, periodOptions, parseOccupants, ISSUE_CATEGORIES } = require('../helpers');
 const payments = require('../payments');
+const notify = require('../notify');
 
 const router = express.Router();
 router.use(requireRole('tenant'));
@@ -67,20 +68,29 @@ router.post('/join', (req, res) => {
     return res.redirect('/tenant');
   }
   const householdNote = String(req.body.household_note || '').trim().slice(0, 500);
+  // Others who applied for this apartment are told it has been taken.
+  const othersApplied = all(
+    "SELECT id FROM applications WHERE apartment_id = ? AND status = 'pending' AND tenant_id != ?",
+    invite.apartment_id,
+    req.user.id
+  ).map((r) => r.id);
+  let tenancyId;
   transaction(() => {
-    run(
+    tenancyId = Number(run(
       'INSERT INTO tenancies (apartment_id, tenant_id, occupants, household_note) VALUES (?, ?, ?, ?)',
       invite.apartment_id,
       req.user.id,
       occupants,
       householdNote
-    );
+    ).lastInsertRowid);
     run("UPDATE apartments SET status = 'occupied' WHERE id = ?", invite.apartment_id);
     run("UPDATE invites SET used_by = ?, used_at = datetime('now') WHERE id = ?", req.user.id, invite.id);
     run("UPDATE applications SET status = 'rejected' WHERE apartment_id = ? AND status = 'pending'", invite.apartment_id);
     run("UPDATE applications SET status = 'rejected' WHERE tenant_id = ? AND status = 'pending'", req.user.id);
   });
   delete req.session.pendingInvite;
+  notify.tenantJoined(tenancyId);
+  othersApplied.forEach((id) => notify.applicationDecided(id, 'taken'));
   flash(req, 'success', `You're now connected to ${invite.title}.`);
   res.redirect('/tenant');
 });
@@ -120,7 +130,7 @@ router.post('/issues', (req, res) => {
     flash(req, 'error', 'Give the issue a short title.');
     return res.redirect('/tenant?tab=issues');
   }
-  run(
+  const created = run(
     'INSERT INTO issues (tenancy_id, apartment_id, tenant_id, kind, category, title, description, urgency) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     home.tenancy_id,
     home.id,
@@ -131,6 +141,7 @@ router.post('/issues', (req, res) => {
     String(req.body.description || '').slice(0, 3000),
     urgency
   );
+  notify.issueReported(Number(created.lastInsertRowid));
   flash(req, 'success', kind === 'problem' ? 'Problem reported to your landlord.' : 'Suggestion sent to your landlord.');
   res.redirect('/tenant?tab=issues');
 });

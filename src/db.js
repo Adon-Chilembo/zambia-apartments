@@ -113,6 +113,21 @@ addColumn('applications', 'occupants', 'INTEGER');
 addColumn('applications', 'household_note', 'TEXT');
 // Services an apartment offers: comma-separated keys from src/services.js.
 addColumn('apartments', 'services', "TEXT NOT NULL DEFAULT ''");
+// Email notifications: each user can switch them off; every email is logged.
+addColumn('users', 'email_notifications', 'INTEGER NOT NULL DEFAULT 1');
+db.exec(`
+CREATE TABLE IF NOT EXISTS email_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  to_email TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('sent','saved','skipped','opted_out','failed')),
+  detail TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`);
+
 // Optional street address / directions. Private: shown to the landlord (and map), never on the public listing.
 addColumn('apartments', 'address', 'TEXT');
 

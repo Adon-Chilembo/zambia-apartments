@@ -1,0 +1,53 @@
+<%- include('partials/header') %>
+<%
+  const isLandlord = me.role === 'landlord';
+  const events = isLandlord
+    ? ['Someone applies for one of your apartments', 'A tenant connects with your invite code', 'A tenant reports a problem or makes a suggestion', 'A tenant pays rent']
+    : ['Your application is approved or declined', 'Your landlord replies to a problem or suggestion, or changes its status', 'A receipt each time you pay rent'];
+  const statusText = { sent: 'Sent', saved: 'Saved (not sent)', skipped: 'Not sent (demo address)', opted_out: 'Not sent (alerts off)', failed: 'Failed' };
+  const statusColour = { sent: 'green', saved: 'blue', skipped: '', opted_out: '', failed: 'red' };
+%>
+<div class="page-head">
+  <div><h1>Account</h1><p class="muted">Your contact details and email alerts.</p></div>
+</div>
+
+<div class="grid-2">
+  <div class="card pad">
+    <h2>Email alerts</h2>
+    <form method="post" action="/account">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <label class="svc-opt" style="margin:12px 0 !important">
+        <input type="checkbox" name="email_notifications" <%= me.email_notifications ? 'checked' : '' %>>
+        <span>Email me at <b><%= me.email %></b> when:</span>
+      </label>
+      <ul class="small muted" style="margin:0 0 16px;padding-left:22px">
+        <% events.forEach(ev => { %><li style="margin-bottom:4px"><%= ev %></li><% }) %>
+      </ul>
+      <div class="field">
+        <label for="phone">Phone number</label>
+        <input type="tel" id="phone" name="phone" value="<%= me.phone || '' %>" placeholder="097 123 4567">
+      </div>
+      <button class="btn">Save</button>
+    </form>
+    <% if (mailMode === 'outbox') { %>
+      <p class="tiny" style="margin-top:14px">No mail server is set up yet, so emails are saved on the server instead of being sent.</p>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Recent emails to you</h3></div>
+    <% if (!recent.length) { %>
+      <div class="empty">No emails yet.</div>
+    <% } else { %>
+      <ul class="list">
+        <% recent.forEach(m => { %>
+          <li>
+            <div class="li-row"><b class="small"><%= m.subject %></b><span class="badge <%= statusColour[m.status] %>"><%= statusText[m.status] || m.status %></span></div>
+            <div class="tiny"><%= h.date(m.created_at) %></div>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+</div>
+<%- include('partials/footer') %>

@@ -84,6 +84,27 @@ Notes:
 - **Non-Zambian accounts:** Flutterwave says merchants registered outside Zambia must email them to enable Zambian Mobile Money.
 - **Live mode:** switch to the live key (`FLWSECK-...-X`) only when you're ready to take real money; the app prints a warning at startup when one is in use. `.env` is in `.gitignore`, so keys are never committed.
 
+## Email alerts
+
+The site emails people when something happens:
+
+| Event | Who gets an email |
+| --- | --- |
+| Someone applies for an apartment | Landlord |
+| A tenant connects with an invite code | Landlord |
+| A tenant reports a problem or makes a suggestion | Landlord |
+| The landlord replies to an issue or changes its status | Tenant |
+| An application is approved or declined (or the apartment goes to someone else) | Applicant |
+| Rent is paid | Landlord, plus a receipt to the tenant |
+
+Each email has a button straight to the right page. Anyone can switch alerts off on their **Account** page, which also lists the last emails sent to them.
+
+**Without a mail server** (the default), emails are not sent: each one is saved as an HTML file in `data/outbox/` so you can open it in a browser and see exactly what would go out.
+
+**To send for real**, fill in the SMTP settings in `.env` (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`) and restart. The console prints whether the mail server accepted the connection. Also set `PUBLIC_URL` so the buttons in emails point at your live site. Demo addresses ending in `.test` are never emailed.
+
+Every email, sent or not, is recorded in the `email_log` table with its status.
+
 ## Photos
 
 Landlords upload photos on an apartment's **Photos** tab: JPG, PNG or WebP, up to 8 MB each and 30 per apartment. The first photo is the cover on the listings. Files are checked to be real images, saved under `data/uploads/` with random names, and served at `/uploads/...`. `npm run seed` clears them along with the demo data.
@@ -103,6 +124,7 @@ The landing-page background is a free Unsplash photo saved as `public/demo-photo
 | `PORT` | `3000` | Web server port |
 | `DB_PATH` | `data/zambia_apartments.db` | SQLite database file |
 | `UPLOAD_DIR` | `data/uploads` | Where uploaded photos are stored |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | unset (save to `data/outbox`) | Mail server for email alerts |
 | `HERO_IMAGE_URL` | `/static/demo-photos/hero-home-at-dusk.jpg` | Landing-page background image |
 
 ## Before going live
@@ -111,7 +133,7 @@ This is a working local demo. Before real tenants use it:
 
 - Serve it over HTTPS and set `cookie.secure`.
 - Use a persistent session store (sessions are currently kept in memory).
-- Add password reset and SMS notifications, for example for new issues or rent reminders.
+- Connect a mail server (see Email alerts) and add password reset; consider SMS alerts too.
 - Use Flutterwave live keys and set up the webhook.
 - Store photos and the database somewhere persistent (see the hosting note above).
 
@@ -123,6 +145,8 @@ src/db.js              SQLite schema
 src/payments.js        Flutterwave + simulator
 src/services.js        services catalogue and icons
 src/uploads.js         photo upload handling
+src/mailer.js          sending email (SMTP or data/outbox)
+src/notify.js          the email for each event
 src/routes/            public, auth, tenant, landlord, pay, webhooks
 views/                 EJS templates
 public/style.css       styling

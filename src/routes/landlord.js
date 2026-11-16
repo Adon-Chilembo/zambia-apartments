@@ -4,6 +4,7 @@ const { get, all, run, transaction } = require('../db');
 const { flash, requireRole, currentPeriod } = require('../helpers');
 const { cleanServices } = require('../services');
 const uploads = require('../uploads');
+const notify = require('../notify');
 
 const router = express.Router();
 router.use(requireRole('landlord'));
@@ -270,6 +271,12 @@ router.post('/applications/:id/:decision', (req, res) => {
       flash(req, 'error', 'That applicant has already moved into another apartment.');
       return res.redirect(back);
     }
+    // Other people who applied for this apartment are told it has been taken.
+    const othersApplied = all(
+      "SELECT id FROM applications WHERE apartment_id = ? AND status = 'pending' AND id != ?",
+      app.apartment_id,
+      app.id
+    ).map((r) => r.id);
     transaction(() => {
       run("UPDATE applications SET status = 'approved' WHERE id = ?", app.id);
       run("UPDATE applications SET status = 'rejected' WHERE apartment_id = ? AND status = 'pending'", app.apartment_id);
@@ -277,10 +284,13 @@ router.post('/applications/:id/:decision', (req, res) => {
       run('INSERT INTO tenancies (apartment_id, tenant_id, occupants, household_note) VALUES (?, ?, ?, ?)', app.apartment_id, app.tenant_id, app.occupants, app.household_note);
       run("UPDATE apartments SET status = 'occupied' WHERE id = ?", app.apartment_id);
     });
-    flash(req, 'success', `Application approved. The tenant is now connected to ${app.title}.`);
+    notify.applicationDecided(app.id);
+    othersApplied.forEach((id) => notify.applicationDecided(id, 'taken'));
+    flash(req, 'success', `Application approved. The tenant is now connected to ${app.title} and has been emailed.`);
   } else {
     run("UPDATE applications SET status = 'rejected' WHERE id = ?", app.id);
-    flash(req, 'info', 'Application declined.');
+    notify.applicationDecided(app.id);
+    flash(req, 'info', 'Application declined. The applicant has been emailed.');
   }
   res.redirect(back);
 });
@@ -293,13 +303,17 @@ router.post('/issues/:id', (req, res) => {
   );
   if (!issue) return res.redirect('/landlord/issues');
   const status = ['open', 'in_progress', 'resolved'].includes(req.body.status) ? req.body.status : issue.status;
+  const response = String(req.body.landlord_response || '').slice(0, 2000);
   run(
     "UPDATE issues SET status = ?, landlord_response = ?, updated_at = datetime('now') WHERE id = ?",
     status,
-    String(req.body.landlord_response || '').slice(0, 2000),
+    response,
     issue.id
   );
-  flash(req, 'success', 'Update saved. The tenant can see it.');
+  // Only email the tenant when something they'd notice changed.
+  const changed = status !== issue.status || response.trim() !== String(issue.landlord_response || '').trim();
+  if (changed) notify.issueUpdated(issue.id);
+  flash(req, 'success', changed ? 'Update saved. The tenant can see it and has been emailed.' : 'Nothing changed.');
   const back = String(req.body.back || '');
   res.redirect(back.startsWith('/landlord') ? back : '/landlord/issues');
 });

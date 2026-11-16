@@ -2,17 +2,20 @@ const express = require('express');
 const { get, run } = require('../db');
 const { flash, requireRole, NETWORKS } = require('../helpers');
 const payments = require('../payments');
+const notify = require('../notify');
 
 const router = express.Router();
 
 function settle(reference, status) {
-  run(
+  const r = run(
     `UPDATE payments SET status = ?, paid_at = CASE WHEN ? = 'success' THEN datetime('now') ELSE paid_at END
       WHERE reference = ? AND status = 'pending'`,
     status,
     status,
     reference
   );
+  // Only the call that actually marks it paid sends the emails, so a payment is never announced twice.
+  if (status === 'success' && r.changes > 0) notify.paymentReceived(reference);
 }
 
 /**

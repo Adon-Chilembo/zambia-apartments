@@ -76,6 +76,7 @@ app.use(require('./routes/auth'));
 app.use('/tenant', require('./routes/tenant'));
 app.use('/pay', require('./routes/pay'));
 app.use('/landlord', require('./routes/landlord'));
+app.use('/account', require('./routes/account'));
 
 app.use((req, res) => res.status(404).render('error', { title: 'Not found', message: 'That page does not exist.' }));
 app.use((err, req, res, _next) => {
@@ -95,4 +96,7 @@ app.listen(PORT, () => {
   console.log(`Zambia Apartments running at http://localhost:${PORT}`);
   console.log(`Payments: ${payments.provider === 'flutterwave' ? `Flutterwave Mobile Money (${payments.keyMode} key)` : 'built-in Mobile Money simulator (no FLW_SECRET_KEY in .env)'}`);
   payments.checkKey();
+  const mailer = require('./mailer');
+  console.log(`Email: ${mailer.mode === 'smtp' ? 'sending through ' + process.env.SMTP_HOST : 'saving to ' + path.relative(process.cwd(), mailer.OUTBOX_DIR) + ' (no SMTP_HOST in .env)'}`);
+  mailer.checkConnection();
 });

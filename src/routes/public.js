@@ -2,6 +2,7 @@ const express = require('express');
 const { get, all, run } = require('../db');
 const { flash, activeTenancy, parseOccupants } = require('../helpers');
 const { SERVICES, parseServices } = require('../services');
+const notify = require('../notify');
 
 const router = express.Router();
 
@@ -123,7 +124,7 @@ router.post('/apartments/:id/apply', (req, res) => {
     req.user.id
   );
   if (!existing) {
-    run(
+    const r = run(
       'INSERT INTO applications (apartment_id, tenant_id, message, occupants, household_note) VALUES (?, ?, ?, ?, ?)',
       apartment.id,
       req.user.id,
@@ -131,6 +132,7 @@ router.post('/apartments/:id/apply', (req, res) => {
       occupants,
       String(req.body.household_note || '').trim().slice(0, 500)
     );
+    notify.applicationReceived(Number(r.lastInsertRowid));
   }
   flash(req, 'success', `Application sent for ${apartment.title}. The landlord will review it.`);
   res.redirect('/tenant');

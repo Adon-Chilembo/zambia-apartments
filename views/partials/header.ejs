@@ -35,6 +35,7 @@
         <a href="/landlord/payments" class="<%= locals.section === 'payments' ? 'active' : '' %>">Payments</a>
       <% } %>
       <% if (user) { %>
+        <a href="/account" class="<%= path.startsWith('/account') ? 'active' : '' %>">Account</a>
         <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="linklike">Log out</button></form>
         <span class="whoami"><%= user.name %> · <%= user.role %></span>
       <% } else { %>

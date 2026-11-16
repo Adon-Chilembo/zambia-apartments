@@ -13,6 +13,12 @@ if (fs.existsSync(uploadDir)) {
   }
 }
 
+// Saved emails belong to the old data too.
+const outboxDir = process.env.OUTBOX_DIR || path.join(__dirname, '..', 'data', 'outbox');
+if (fs.existsSync(outboxDir)) {
+  for (const name of fs.readdirSync(outboxDir)) if (name.endsWith('.html')) fs.rmSync(path.join(outboxDir, name), { force: true });
+}
+
 const bcrypt = require('bcryptjs');
 const { run, transaction } = require('./db');
 const { currentPeriod } = require('./helpers');
