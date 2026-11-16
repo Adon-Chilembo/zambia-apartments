@@ -190,7 +190,7 @@ router.post('/pay', async (req, res) => {
       reference
     );
 
-    const base = (process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    const base = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
     const url = await payments.startPayment({
       reference,
       amount: home.rent_amount,

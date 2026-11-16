@@ -1,0 +1,17 @@
+# Render blueprint: https://render.com/docs/blueprint-spec
+# Free plan: the disk is wiped on every deploy or restart, so the site re-creates the demo
+# data each time it starts. For real tenants, move to a paid plan with a persistent disk,
+# point DB_PATH / UPLOAD_DIR at it, and change startCommand to just "npm start".
+services:
+  - type: web
+    name: tour-masters-apartments
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm run seed && npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 24.11.1
+      - key: SESSION_SECRET
+        generateValue: true

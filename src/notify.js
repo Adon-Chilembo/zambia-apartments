@@ -6,7 +6,8 @@ const mailer = require('./mailer');
 const { money, period, people, NETWORKS, STATUS_LABEL } = require('./helpers');
 
 const e = mailer.escapeHtml;
-const base = () => (process.env.PUBLIC_URL || `http://localhost:${Number(process.env.PORT) || 3000}`).replace(/\/$/, '');
+// RENDER_EXTERNAL_URL is set automatically when hosted on Render.
+const base = () => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || `http://localhost:${Number(process.env.PORT) || 3000}`).replace(/\/$/, '');
 
 // ---------- Layout ----------
 
