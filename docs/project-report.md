@@ -27,20 +27,24 @@ Objectives:
 ## How it works
 
 ```mermaid
-flowchart LR
-    subgraph Tenant
-        T1[Find a home] --> T2[Apply or<br/>invite code] --> T3[Move in] --> T4[Pay rent<br/>Mobile Money] --> T5[Report issue]
-    end
-    subgraph Landlord
-        L1[List a home] ~~~ L2[Approve<br/>or decline] ~~~ L4[Rent recorded] ~~~ L5[Reply and fix]
-    end
-    L1 -- goes live --> T1
-    T2 -- request --> L2
-    L2 -- approved --> T3
-    T4 -- payment --> L4
-    T5 -- issue --> L5
-    L5 -- reply --> T5
+flowchart TD
+    L1[Landlord lists a home<br/>with photos and services] --> T1[Tenant finds it<br/>photos, services, map]
+    T1 --> T2[Tenant applies,<br/>or enters an invite code]
+    T2 --> L2{Landlord<br/>approves?}
+    L2 -- no --> T1
+    L2 -- yes --> T3[Tenancy starts<br/>home shows as occupied]
+    T3 --> T4[Tenant pays rent<br/>by Mobile Money]
+    T4 --> L4[Landlord sees the payment<br/>on the dashboard]
+    T3 --> T5[Tenant reports a problem]
+    T5 --> L5[Landlord replies<br/>and updates the status]
+    L5 --> T5
+    classDef tenant fill:#e8efff,stroke:#185DF1,color:#031130
+    classDef landlord fill:#f3f7fe,stroke:#031130,color:#031130
+    class T1,T2,T3,T4,T5 tenant
+    class L1,L2,L4,L5 landlord
 ```
+
+Blue boxes are tenant steps; outlined boxes are landlord steps.
 
 A tenancy starts when a landlord approves an application, or at once when a tenant enters the landlord's invite code. The apartment then shows as occupied, and rent and repairs flow between the two sides on the platform.
 
