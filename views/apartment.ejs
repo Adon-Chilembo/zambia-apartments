@@ -62,6 +62,63 @@
         <% } %>
       </section>
 
+      <!-- Location & directions -->
+      <%
+        // Visitors see the neighbourhood only; the street address stays private to the landlord.
+        const mapOpts = { includeAddress: applyState === 'owner' };
+        const mapPlace = h.mapQuery(a, mapOpts);
+      %>
+      <section class="section" id="location">
+        <span class="eyebrow">Location</span>
+        <h2 class="big">Where it is</h2>
+        <div class="card apt-map" style="margin-top:16px">
+          <div class="map-stage">
+            <iframe id="apt-map" src="<%= h.mapEmbedUrl(a, mapOpts) %>" title="Map of <%= a.neighbourhood %>, <%= a.city %>" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+            <div class="map-place">
+              <% if (cover) { %><img src="<%= h.photoSrc(cover.filename, 'thumb') %>" alt="" loading="lazy"><% } %>
+              <div>
+                <b><%= a.title %></b>
+                <span class="tiny">📍 <%= a.neighbourhood %>, <%= a.city %></span>
+                <span class="map-price"><%= h.money(a.rent_amount).replace('.00', '') %> <small>/ month</small></span>
+              </div>
+            </div>
+          </div>
+          <div class="map-actions">
+            <button type="button" class="btn" id="dir-btn" data-place="<%= mapPlace %>">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 4 20l8-4 8 4z"/></svg>
+              Directions from where I am
+            </button>
+            <a class="btn secondary" id="dir-open" href="https://www.google.com/maps/dir/?api=1&destination=<%= encodeURIComponent(mapPlace) %>" target="_blank" rel="noopener">Open in Google Maps</a>
+            <p class="tiny" id="dir-note" role="status"><%= applyState === 'owner' ? 'You see the exact address; visitors see the neighbourhood only.' : 'The map shows the neighbourhood. The landlord shares the exact address when you arrange a visit.' %></p>
+          </div>
+        </div>
+        <script>
+          // Directions: ask the browser where the visitor is, then draw the route to the apartment on the map.
+          (function () {
+            var btn = document.getElementById('dir-btn'), note = document.getElementById('dir-note');
+            var map = document.getElementById('apt-map'), open = document.getElementById('dir-open');
+            var place = encodeURIComponent(btn.dataset.place), label = btn.lastChild;
+            btn.addEventListener('click', function () {
+              if (!navigator.geolocation) { note.textContent = 'This browser cannot share your location. Use "Open in Google Maps" instead.'; return; }
+              btn.disabled = true; label.textContent = ' Finding where you are…';
+              navigator.geolocation.getCurrentPosition(function (pos) {
+                var from = pos.coords.latitude.toFixed(6) + ',' + pos.coords.longitude.toFixed(6);
+                map.src = 'https://maps.google.com/maps?saddr=' + from + '&daddr=' + place + '&output=embed';
+                open.href = 'https://www.google.com/maps/dir/?api=1&origin=' + from + '&destination=' + place;
+                open.textContent = 'Start navigation in Google Maps';
+                note.textContent = 'Showing the route from where you are now. Distance and travel time are on the map.';
+                btn.disabled = false; label.textContent = ' Update my location';
+              }, function (err) {
+                note.textContent = err.code === 1
+                  ? 'Location is blocked for this site. Allow it in your browser, or use "Open in Google Maps".'
+                  : 'Could not find where you are. Check that location is on, or use "Open in Google Maps".';
+                btn.disabled = false; label.textContent = ' Directions from where I am';
+              }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+            });
+          })();
+        </script>
+      </section>
+
       <!-- About -->
       <section class="section">
         <span class="eyebrow">About</span>
@@ -113,7 +170,7 @@
       <%
         // Contact the landlord directly (for vacant apartments, if the landlord allows it).
         const waNumber = a.landlord_whatsapp || a.landlord_phone;
-        const waText = `Hello ${a.landlord_name.split(' ')[0]}, I saw your apartment "${a.title}" in ${a.neighbourhood}, ${a.city} on Zambia Apartments (${h.money(a.rent_amount)}/month). Is it still available?`;
+        const waText = `Hello ${a.landlord_name.split(' ')[0]}, I saw your apartment "${a.title}" in ${a.neighbourhood}, ${a.city} on Tour Masters Apartments (${h.money(a.rent_amount)}/month). Is it still available?`;
         const showContact = a.status === 'available' && (a.landlord_show_contact || applyState === 'owner') && (h.telHref(a.landlord_phone) || h.whatsappHref(waNumber, waText));
       %>
       <% if (showContact) { %>

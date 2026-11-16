@@ -13,32 +13,32 @@ const base = () => (process.env.PUBLIC_URL || `http://localhost:${Number(process
 function layout({ preheader, heading, intro, rows = [], quote, button, after }) {
   const rowHtml = rows.length
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0;border:1px solid #e7e0d6;border-radius:12px;border-collapse:separate">
-        ${rows.map(([k, v], i) => `<tr><td style="padding:10px 14px;color:#8a837c;font-size:13px;width:38%;vertical-align:top;${i ? 'border-top:1px solid #efe9df;' : ''}">${e(k)}</td>
-          <td style="padding:10px 14px;color:#15130f;font-size:14px;font-weight:600;${i ? 'border-top:1px solid #efe9df;' : ''}">${v}</td></tr>`).join('')}
+        ${rows.map(([k, v], i) => `<tr><td style="padding:10px 14px;color:#7a849b;font-size:13px;width:38%;vertical-align:top;${i ? 'border-top:1px solid #e3e9f5;' : ''}">${e(k)}</td>
+          <td style="padding:10px 14px;color:#031130;font-size:14px;font-weight:600;${i ? 'border-top:1px solid #e3e9f5;' : ''}">${v}</td></tr>`).join('')}
       </table>`
     : '';
   const quoteHtml = quote
-    ? `<div style="margin:16px 0;padding:12px 16px;background:#f5f3ee;border-left:4px solid #17702f;border-radius:8px;color:#3d3a35;font-size:14px;white-space:pre-line">${e(quote)}</div>`
+    ? `<div style="margin:16px 0;padding:12px 16px;background:#F3F7FE;border-left:4px solid #185DF1;border-radius:8px;color:#47526b;font-size:14px;white-space:pre-line">${e(quote)}</div>`
     : '';
   const buttonHtml = button
-    ? `<p style="margin:24px 0 8px"><a href="${button.href}" style="display:inline-block;background:#17702f;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:10px">${e(button.label)}</a></p>`
+    ? `<p style="margin:24px 0 8px"><a href="${button.href}" style="display:inline-block;background:#185DF1;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:10px">${e(button.label)}</a></p>`
     : '';
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${e(heading)}</title></head><body>
 <div style="display:none;max-height:0;overflow:hidden">${e(preheader || intro || '')}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f3ee;padding:24px 12px;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F7FE;padding:24px 12px;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif">
   <tr><td align="center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e7e0d6">
-      <tr><td style="height:5px;background:linear-gradient(90deg,#17702f 0 70%,#de2010 70% 80%,#111 80% 90%,#ef7d00 90% 100%);background-color:#17702f"></td></tr>
-      <tr><td style="padding:20px 26px 0;font-weight:800;font-size:17px;color:#15130f">Zambia <span style="color:#e8790c">Apartments</span></td></tr>
+      <tr><td style="height:5px;background:#185DF1"></td></tr>
+      <tr><td style="padding:20px 26px 0;font-weight:800;font-size:17px;color:#031130">Tour Masters <span style="color:#185DF1">Apartments</span></td></tr>
       <tr><td style="padding:14px 26px 26px">
-        <h1 style="margin:0 0 10px;font-size:22px;line-height:1.25;color:#15130f">${e(heading)}</h1>
-        ${intro ? `<p style="margin:0;color:#3d3a35;font-size:15px;line-height:1.55">${intro}</p>` : ''}
+        <h1 style="margin:0 0 10px;font-size:22px;line-height:1.25;color:#031130">${e(heading)}</h1>
+        ${intro ? `<p style="margin:0;color:#47526b;font-size:15px;line-height:1.55">${intro}</p>` : ''}
         ${rowHtml}${quoteHtml}${buttonHtml}
-        ${after ? `<p style="margin:14px 0 0;color:#57534e;font-size:14px;line-height:1.55">${after}</p>` : ''}
+        ${after ? `<p style="margin:14px 0 0;color:#47526b;font-size:14px;line-height:1.55">${after}</p>` : ''}
       </td></tr>
-      <tr><td style="padding:16px 26px;background:#faf8f4;border-top:1px solid #efe9df;color:#8a837c;font-size:12px;line-height:1.5">
-        You're getting this because you have an account on Zambia Apartments.
-        <a href="${base()}/account" style="color:#17702f">Turn email alerts off</a>.
+      <tr><td style="padding:16px 26px;background:#F3F7FE;border-top:1px solid #e3e9f5;color:#7a849b;font-size:12px;line-height:1.5">
+        You're getting this because you have an account on Tour Masters Apartments.
+        <a href="${base()}/account" style="color:#185DF1">Turn email alerts off</a>.
       </td></tr>
     </table>
   </td></tr>
@@ -102,7 +102,7 @@ const applicationReceived = safely((applicationId) => {
     intro: `Hi ${e(firstName(ap.landlord_name))}, someone wants to rent your apartment in ${place(ap)}.`,
     rows: [
       ['Applicant', e(ap.name)],
-      ['Household', e(people(ap.occupants)) + (ap.household_note ? `<br><span style="font-weight:400;color:#57534e">${e(ap.household_note)}</span>` : '')],
+      ['Household', e(people(ap.occupants)) + (ap.household_note ? `<br><span style="font-weight:400;color:#47526b">${e(ap.household_note)}</span>` : '')],
       ['Phone', e(ap.phone || '—')],
       ['Email', e(ap.email)],
       ['Occupation', e(ap.occupation || '—')],
@@ -160,7 +160,7 @@ const tenantJoined = safely((tenancyId) => {
     intro: `Hi ${e(firstName(t.landlord_name))}, ${e(t.name)} used your invite code and is now the tenant of your apartment in ${place(t)}.`,
     rows: [
       ['Tenant', e(t.name)],
-      ['Household', e(people(t.occupants)) + (t.household_note ? `<br><span style="font-weight:400;color:#57534e">${e(t.household_note)}</span>` : '')],
+      ['Household', e(people(t.occupants)) + (t.household_note ? `<br><span style="font-weight:400;color:#47526b">${e(t.household_note)}</span>` : '')],
       ['Phone', e(t.phone || '—')],
       ['Email', e(t.email)],
     ],
@@ -211,7 +211,7 @@ const issueUpdated = safely((issueId) => {
     intro: `Hi ${e(firstName(i.tenant_name))}, ${e(i.landlord_name)} updated the ${i.kind === 'problem' ? 'problem' : 'suggestion'} you raised for <b>${e(i.apt_title)}</b>.`,
     rows: [
       ['About', e(i.title)],
-      ['Status', i.status === 'resolved' ? '<span style="color:#17702f">Resolved</span>' : e(status)],
+      ['Status', i.status === 'resolved' ? '<span style="color:#185DF1">Resolved</span>' : e(status)],
     ],
     quote: i.landlord_response ? `${i.landlord_name}: ${i.landlord_response}` : null,
     button: { label: 'View it on My home', href: `${base()}/tenant?tab=issues` },

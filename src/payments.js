@@ -52,7 +52,7 @@ async function startPayment({ reference, amount, email, name, phone, callbackUrl
     redirect_url: callbackUrl,
     payment_options: 'mobilemoneyzambia',
     customer: { email, name, phonenumber: phone },
-    customizations: { title: 'Zambia Apartments', description: title },
+    customizations: { title: 'Tour Masters Apartments', description: title },
     meta: metadata,
   });
   return data.link;

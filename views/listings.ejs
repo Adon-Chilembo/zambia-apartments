@@ -4,7 +4,51 @@
 <% const ctaText = !user ? 'List your property' : user.role === 'landlord' ? 'List a new apartment' : 'Go to my home'; %>
 
 <!-- Hero -->
-<section class="hero-full" style="--hero: url('<%= heroImage %>')">
+<%
+  // Hero slideshow: the cover photo of up to six apartments, vacant ones first.
+  const heroApts = apartments.filter(x => x.photos && x.photos.length)
+    .sort((x, y) => (x.status === 'available' ? 0 : 1) - (y.status === 'available' ? 0 : 1))
+    .slice(0, 6);
+%>
+<section class="hero-full" style="--hero: url('<%= heroApts.length ? h.photoSrc(heroApts[0].photos[0]) : heroImage %>')">
+  <% if (heroApts.length) { %>
+    <div class="hero-slides" aria-hidden="true">
+      <% heroApts.forEach((x, i) => { %>
+        <div class="hero-slide <%= i === 0 ? 'on' : '' %>" <% if (i === 0) { %>style="background-image:url('<%= h.photoSrc(x.photos[0]) %>')"<% } else { %>data-bg="<%= h.photoSrc(x.photos[0]) %>"<% } %>></div>
+      <% }) %>
+    </div>
+    <a class="hero-caption" id="hero-caption" href="/apartments/<%= heroApts[0].id %>">
+      <b><%= heroApts[0].title %></b>
+      <span><%= heroApts[0].neighbourhood %>, <%= heroApts[0].city %> · <%= h.money(heroApts[0].rent_amount).replace('.00', '') %> / month</span>
+    </a>
+    <% if (heroApts.length > 1) { %>
+      <div class="hero-dots" id="hero-dots">
+        <% heroApts.forEach((x, i) => { %><button type="button" class="<%= i === 0 ? 'on' : '' %>" aria-label="Show <%= x.title %>"></button><% }) %>
+      </div>
+      <script>
+        // Hero slideshow: fades between apartments every few seconds; the caption links to the one on screen.
+        document.addEventListener('DOMContentLoaded', function () {
+          var apts = <%- JSON.stringify(heroApts.map(x => ({ href: '/apartments/' + x.id, title: x.title, sub: x.neighbourhood + ', ' + x.city + ' · ' + h.money(x.rent_amount).replace('.00', '') + ' / month' }))).replace(/</g, '\\u003c') %>;
+          var slides = [].slice.call(document.querySelectorAll('.hero-slide')), dots = [].slice.call(document.querySelectorAll('#hero-dots button'));
+          var cap = document.getElementById('hero-caption'), i = 0, timer = null;
+          function load(k) { var s = slides[k]; if (s.dataset.bg) { s.style.backgroundImage = "url('" + s.dataset.bg + "')"; delete s.dataset.bg; } }
+          function show(k) {
+            i = (k + slides.length) % slides.length; load(i);
+            slides.forEach(function (s, j) { s.classList.toggle('on', j === i); });
+            dots.forEach(function (d, j) { d.classList.toggle('on', j === i); });
+            cap.href = apts[i].href; cap.querySelector('b').textContent = apts[i].title; cap.querySelector('span').textContent = apts[i].sub;
+            load((i + 1) % slides.length); // have the next photo ready
+          }
+          function start() { stop(); if (!matchMedia('(prefers-reduced-motion: reduce)').matches) timer = setInterval(function () { if (!document.hidden) show(i + 1); }, 6000); }
+          function stop() { clearInterval(timer); }
+          dots.forEach(function (d, j) { d.addEventListener('click', function () { show(j); start(); }); });
+          cap.addEventListener('mouseenter', stop); cap.addEventListener('mouseleave', start);
+          cap.addEventListener('focus', stop); cap.addEventListener('blur', start);
+          load(1); start();
+        });
+      </script>
+    <% } %>
+  <% } %>
   <div class="wrap">
     <div class="hero-inner">
       <span class="pill"><span class="dot"></span>Homes across Zambia</span>
@@ -43,7 +87,7 @@
       </select>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn">Search</button>
+      <button class="btn navy"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>Search</button>
       <% if (filtered) { %><a class="btn secondary" href="/#listings">Clear</a><% } %>
     </div>
   </form>

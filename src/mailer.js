@@ -9,7 +9,7 @@ const { run } = require('./db');
 
 const SMTP_HOST = (process.env.SMTP_HOST || '').trim();
 const mode = SMTP_HOST ? 'smtp' : 'outbox';
-const FROM = process.env.MAIL_FROM || 'Zambia Apartments <no-reply@zambia-apartments.local>';
+const FROM = process.env.MAIL_FROM || 'Tour Masters Apartments <no-reply@tour-masters-apartments.local>';
 const OUTBOX_DIR = process.env.OUTBOX_DIR || path.join(__dirname, '..', 'data', 'outbox');
 const DEMO_DOMAIN = /\.(test|example|invalid|localhost)$/i;
 

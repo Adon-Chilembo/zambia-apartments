@@ -93,7 +93,7 @@ app.use((err, req, res, _next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Zambia Apartments running at http://localhost:${PORT}`);
+  console.log(`Tour Masters Apartments running at http://localhost:${PORT}`);
   console.log(`Payments: ${payments.provider === 'flutterwave' ? `Flutterwave Mobile Money (${payments.keyMode} key)` : 'built-in Mobile Money simulator (no FLW_SECRET_KEY in .env)'}`);
   payments.checkKey();
   const mailer = require('./mailer');

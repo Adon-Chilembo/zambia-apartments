@@ -1,6 +1,6 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "zambia-apartments", "runtimeExecutable": "npm", "runtimeArgs": ["start"], "port": 3000 }
+    { "name": "tour-masters-apartments", "runtimeExecutable": "npm", "runtimeArgs": ["start"], "port": 3000 }
   ]
 }

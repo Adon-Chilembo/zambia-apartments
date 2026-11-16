@@ -1,4 +1,4 @@
-# Zambia Apartments
+# Tour Masters Apartments
 
 A website with three parts:
 
