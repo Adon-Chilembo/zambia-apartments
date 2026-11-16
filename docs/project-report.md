@@ -8,9 +8,18 @@ Tour Masters Apartments is a web platform where tenants in Zambia find, rent and
 | Source | https://github.com/Adon-Chilembo/zambia-apartments |
 | Users | Tenants and landlords |
 | Coverage (demo data) | 33 homes from 10 landlords across 7 cities: Chingola, Chipata, Kabwe, Kitwe, Livingstone, Lusaka, Ndola |
-| Rent payments | MTN MoMo, Airtel Money and Zamtel Kwacha through Flutterwave, with a built-in simulator |
+| Rent payments | MTN MoMo, Airtel Money and Zamtel Kwacha through an integrated payment system, with a built-in simulator |
 | Built with | Node.js, Express, EJS templates, SQLite |
 | Hosting | Render, redeployed automatically on every push to GitHub |
+
+## Contents
+
+1. [Purpose and goals](#purpose-and-goals)
+2. [How it works](#how-it-works)
+3. [Features for tenants](#features-for-tenants)
+4. [Features for landlords](#features-for-landlords)
+5. [Design and branding](#design-and-branding)
+6. [Technology, data and security](#technology-data-and-security)
 
 ## Purpose and goals
 
@@ -93,31 +102,10 @@ A 70-second portrait promo video (1080×1920) walks through the platform for ten
 
 ## Technology, data and security
 
-The architecture, routes and data model are described in [architecture.md](architecture.md), and hosting in [deployment.md](deployment.md). In short:
+The architecture, routes and data model are described in [architecture.md](architecture.md). In short:
 
 - One Express application renders pages with EJS and stores data in SQLite (9 tables).
-- Rent goes through Flutterwave; each result is confirmed on the return page and by webhook, and re-verified with Flutterwave before it counts.
+- Rent goes through an integrated payment system; each result is confirmed on the return page and by webhook, and re-verified with the payment system before it counts.
 - Passwords are hashed with bcrypt; sessions use HTTP-only, same-site cookies; every form carries a CSRF token.
 - Street addresses are shown only to the landlord; uploads are images only, up to 8 MB, under random file names.
 - Keys and passwords live in environment variables and are never committed.
-
-## Testing, limitations and future work
-
-**Testing.** Each feature was checked by hand in the browser with the seeded demo accounts (10 landlords, 20 tenants), at phone and desktop widths and in both themes. Payments were tested end to end with the simulator. There are no automated tests yet.
-
-**Limitations.**
-
-- On the free hosting plan, accounts, listings and photos are lost on every restart.
-- Real payments need a live Flutterwave account; the live site uses the simulator.
-- Emails are not sent until a mail server is configured.
-- Visitors see the neighbourhood on the map, not the exact house; there is no map view of all listings.
-- The demo accounts share one published password.
-
-**Future work.**
-
-1. A paid plan with a persistent disk, or cloud storage for photos and a hosted database.
-2. Automated tests for sign-up, applications, payments and issues.
-3. A live Flutterwave account, a mail service and the site's public address.
-4. A map view of all listings, using coordinates landlords pick on a map.
-5. SMS or WhatsApp alerts, PDF rent receipts and reminders before rent is due.
-6. Password reset, login rate limiting and admin moderation of listings.
