@@ -73,7 +73,9 @@ router.get('/', (req, res) => {
 
 router.get('/apartments/:id', (req, res) => {
   const apartment = get(
-    `SELECT a.*, u.name AS landlord_name FROM apartments a JOIN users u ON u.id = a.landlord_id WHERE a.id = ?`,
+    `SELECT a.*, u.name AS landlord_name, u.phone AS landlord_phone, u.email AS landlord_email,
+            u.whatsapp AS landlord_whatsapp, u.show_contact AS landlord_show_contact
+       FROM apartments a JOIN users u ON u.id = a.landlord_id WHERE a.id = ?`,
     req.params.id
   );
   if (!apartment) return res.status(404).render('error', { title: 'Not found', message: 'That apartment does not exist.' });

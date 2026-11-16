@@ -115,6 +115,9 @@ addColumn('applications', 'household_note', 'TEXT');
 addColumn('apartments', 'services', "TEXT NOT NULL DEFAULT ''");
 // Email notifications: each user can switch them off; every email is logged.
 addColumn('users', 'email_notifications', 'INTEGER NOT NULL DEFAULT 1');
+// Landlord contact on listings: show phone / WhatsApp buttons (on by default), optional separate WhatsApp number.
+addColumn('users', 'show_contact', 'INTEGER NOT NULL DEFAULT 1');
+addColumn('users', 'whatsapp', 'TEXT');
 db.exec(`
 CREATE TABLE IF NOT EXISTS email_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

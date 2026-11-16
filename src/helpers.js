@@ -121,6 +121,22 @@ function photoSrc(name, size = 'full') {
   return '/uploads/' + encodeURIComponent(s);
 }
 
+/**
+ * A Zambian phone number in international form without "+", e.g. "097 555 0101" -> "260975550101".
+ * Returns '' if it doesn't look like a phone number.
+ */
+function intlPhone(phone) {
+  let d = String(phone || '').replace(/[^\d+]/g, '');
+  if (d.startsWith('+')) d = d.slice(1);
+  else if (d.startsWith('00')) d = d.slice(2);
+  else if (d.startsWith('0')) d = '260' + d.slice(1);
+  else if (d.length === 9) d = '260' + d; // e.g. 975550101
+  return /^\d{10,15}$/.test(d) ? d : '';
+}
+const telHref = (phone) => (intlPhone(phone) ? 'tel:+' + intlPhone(phone) : '');
+/** WhatsApp chat link with a ready-written first message. */
+const whatsappHref = (phone, text) => (intlPhone(phone) ? `https://wa.me/${intlPhone(phone)}?text=${encodeURIComponent(text)}` : '');
+
 /** srcset for big header photos so phones download the smaller version. Empty for uploads. */
 function photoSrcset(name) {
   const s = String(name || '');
@@ -172,6 +188,9 @@ module.exports = {
   people,
   photoSrc,
   photoSrcset,
+  intlPhone,
+  telHref,
+  whatsappHref,
   mapQuery,
   mapEmbedUrl,
   mapLink,

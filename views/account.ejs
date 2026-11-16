@@ -27,6 +27,21 @@
         <label for="phone">Phone number</label>
         <input type="tel" id="phone" name="phone" value="<%= me.phone || '' %>" placeholder="097 123 4567">
       </div>
+      <% if (isLandlord) { %>
+        <h3 style="margin:22px 0 4px">Contact on your listings</h3>
+        <p class="small muted" style="margin:0 0 10px">People who have trouble applying online can call or WhatsApp you from your vacant apartments' pages.</p>
+        <label class="svc-opt" style="margin:0 0 12px !important">
+          <input type="checkbox" name="show_contact" <%= me.show_contact ? 'checked' : '' %>>
+          <span>Show my phone number with <b>Call</b> and <b>WhatsApp</b> buttons</span>
+        </label>
+        <div class="field">
+          <label for="whatsapp">WhatsApp number <span class="tiny">(only if different from your phone number)</span></label>
+          <input type="tel" id="whatsapp" name="whatsapp" value="<%= me.whatsapp || '' %>" placeholder="e.g. 096 123 4567">
+        </div>
+        <% if (me.show_contact && !h.intlPhone(me.phone) && !h.intlPhone(me.whatsapp)) { %>
+          <p class="callout tiny" style="margin:0 0 12px">Add a phone number above so visitors can reach you.</p>
+        <% } %>
+      <% } %>
       <button class="btn">Save</button>
     </form>
     <% if (mailMode === 'outbox') { %>

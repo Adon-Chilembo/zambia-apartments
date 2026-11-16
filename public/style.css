@@ -343,6 +343,11 @@ article.listing { position: relative; }
 .apt-layout > * { min-width: 0; }
 @media (min-width: 960px) { .apt-layout { grid-template-columns: 1fr 360px; } }
 .apt-aside { position: sticky; top: 84px; }
+.contact-card { margin-top: 14px; }
+.contact-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.contact-buttons .btn:only-child { grid-column: span 2; }
+.btn.whatsapp { background: linear-gradient(180deg, #2fe07a, #1fb45e); color: #062b14; box-shadow: 0 8px 22px rgba(37, 211, 102, 0.28); }
+@media (max-width: 959px) { .apt-aside { position: static; } }
 .price-big { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
 
 /* Gallery */
