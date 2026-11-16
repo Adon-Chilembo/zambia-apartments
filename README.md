@@ -1,9 +1,15 @@
 # Tour Masters Apartments
 
-A website with three parts:
+Find a home. Rent it. Manage it. A web platform where tenants in Zambia find, rent and pay for homes, and landlords list, fill and manage them.
 
-- **Landing page and listings** (public): a photo hero, the services on offer, live availability, and every available apartment, searchable by area, city, bedrooms and rent in Kwacha (ZMW). Light and dark mode, and a phone-friendly menu.
-- **Apartment pages** show the services as icon cards (Wi-Fi, solar backup, borehole, security and more) and a photo gallery with captions and a full-screen viewer.
+**Live site:** https://tour-masters-apartments.onrender.com (free hosting: it may take about 50 seconds to wake up, and it resets to the demo data on every deploy)
+
+**More documentation:** [project report](docs/project-report.md) · [architecture and routes](docs/architecture.md) · [deployment](docs/deployment.md)
+
+The site has four parts:
+
+- **Landing page and listings** (public): a full-screen slideshow of apartment photos, each with a clickable name, a search bar (city, bedrooms, maximum rent in Kwacha, ZMW), the services on offer, and every apartment, vacant or occupied. Light and dark mode, a phone-friendly menu, and a short logo animation on the first visit.
+- **Apartment pages** show the services as icon cards (Wi-Fi, solar backup, borehole, security and more), a photo gallery with captions and a full-screen viewer, a map of the neighbourhood with directions from the visitor's location, and a contact box for the landlord (Call, WhatsApp, email).
 - **Tenant portal** lets a tenant connect to their apartment and landlord, report problems, suggest improvements, keep their details up to date and pay rent with Mobile Money (MTN MoMo, Airtel Money or Zamtel Kwacha).
 - **Landlord dashboard** lets a landlord list apartments, upload photos (with captions, a cover photo and ordering), tick the services each apartment offers, approve applications, invite tenants, see each tenant's details, respond to problems and suggestions, and track rent payments.
 
@@ -111,7 +117,11 @@ Landlords upload photos on an apartment's **Photos** tab: JPG, PNG or WebP, up t
 
 **Hosting note:** free hosts such as Render's free tier wipe the disk on every deploy or restart, so uploaded photos (and the SQLite database) would be lost. Use a persistent disk, or move photos to cloud storage such as Cloudinary or S3, before going live.
 
-The landing-page background is a free Unsplash photo saved as `public/demo-photos/hero-home-at-dusk.jpg` (Unsplash licence). To use your own, set `HERO_IMAGE_URL` in `.env`, for example to a photo you put in `public/`: `HERO_IMAGE_URL=/static/hero.jpg`.
+The landing-page slideshow uses the cover photos of up to six apartments, vacant ones first. If no apartment has a photo, it falls back to a free Unsplash photo saved as `public/demo-photos/hero-home-at-dusk.jpg` (Unsplash licence); set `HERO_IMAGE_URL` in `.env` to use your own, for example `HERO_IMAGE_URL=/static/hero.jpg`.
+
+## Deployment
+
+The live site runs on [Render](https://render.com) from `render.yaml`: one free Node web service that installs with `npm ci`, loads the demo data and starts the server. Render's GitHub app watches this repository, so every push to `main` redeploys the site in about a minute. Details and settings are in [docs/deployment.md](docs/deployment.md).
 
 ## Settings (`.env`)
 
@@ -119,7 +129,7 @@ The landing-page background is a free Unsplash photo saved as `public/demo-photo
 | --- | --- | --- |
 | `FLW_SECRET_KEY` | unset (simulator) | Enables Mobile Money via Flutterwave |
 | `FLW_SECRET_HASH` | unset | Verifies Flutterwave webhooks |
-| `PUBLIC_URL` | the address in the browser | Flutterwave's return link, needed when deployed |
+| `PUBLIC_URL` | Render's address, else the address in the browser | Flutterwave's return link and the links in emails |
 | `SESSION_SECRET` | random on each start | Signs login cookies. Set it so logins survive restarts |
 | `PORT` | `3000` | Web server port |
 | `DB_PATH` | `data/zambia_apartments.db` | SQLite database file |
@@ -129,9 +139,9 @@ The landing-page background is a free Unsplash photo saved as `public/demo-photo
 
 ## Before going live
 
-This is a working local demo. Before real tenants use it:
+The live site is a demo. Before real tenants use it:
 
-- Serve it over HTTPS and set `cookie.secure`.
+- Set `cookie.secure` (Render already serves the site over HTTPS).
 - Use a persistent session store (sessions are currently kept in memory).
 - Connect a mail server (see Email alerts) and add password reset; consider SMS alerts too.
 - Use Flutterwave live keys and set up the webhook.
@@ -147,7 +157,13 @@ src/services.js        services catalogue and icons
 src/uploads.js         photo upload handling
 src/mailer.js          sending email (SMTP or data/outbox)
 src/notify.js          the email for each event
-src/routes/            public, auth, tenant, landlord, pay, webhooks
-views/                 EJS templates
-public/style.css       styling
+src/routes/            public, auth, account, tenant, landlord, pay, webhooks
+src/seed.js            demo data (npm run seed)
+views/                 EJS templates (partials/ holds the header, footer, logo, slideshow)
+public/style.css       styling, light and dark themes
+public/logo.svg        TM monogram (also the browser tab icon)
+render.yaml            Render deployment blueprint
+docs/                  project report, architecture, deployment
 ```
+
+`promo/` (the promo video and its source) is kept out of git because of its size.
