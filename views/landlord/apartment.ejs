@@ -161,49 +161,78 @@
 <% } %>
 
 <% if (tab === 'photos') { %>
+  <% const groups = h.rooms.groupByRoom(photos); const coverId = photos[0] && photos[0].id; const filled = groups.filter(g => g.room.key !== 'other' && g.photos.length).length; %>
   <div class="card pad" style="margin-bottom:18px">
-    <h2>Add photos</h2>
-    <p class="muted small" style="margin-bottom:14px">Show tenants the rooms and the area: bedrooms, kitchen, bathroom, the yard, parking, the view. The first photo is the cover on the listings. JPG, PNG or WebP, up to <%= uploadLimits.MAX_FILE_MB %> MB each, <%= uploadLimits.MAX_FILES_PER_UPLOAD %> at a time.</p>
-    <form method="post" action="<%= base %>/photos?_csrf=<%= csrf %>" enctype="multipart/form-data" class="dropzone">
-      <div class="row">
-        <div class="field"><label for="photos">Photos</label><input type="file" id="photos" name="photos" accept="image/jpeg,image/png,image/webp" multiple required></div>
-        <div class="field"><label for="caption">Caption <span class="tiny">(optional, for this batch)</span></label><input type="text" id="caption" name="caption" maxlength="120" placeholder="e.g. Main bedroom, Kitchen, Garden"></div>
-      </div>
-      <button class="btn">Upload photos</button>
-    </form>
-  </div>
-
-  <% if (!photos.length) { %>
-    <div class="card empty">No photos yet. Listings with photos get far more interest.</div>
-  <% } else { %>
-    <div class="photo-grid">
-      <% photos.forEach((p, i) => { %>
-        <div class="card photo-item">
-          <div class="thumb">
-            <img src="<%= h.photoSrc(p.filename, 'thumb') %>" alt="<%= p.caption || 'Apartment photo' %>" loading="lazy">
-            <% if (i === 0) { %><span class="badge solid plain">★ Cover photo</span><% } %>
-          </div>
-          <div class="pbody">
-            <form class="cap-form" method="post" action="/landlord/photos/<%= p.id %>/caption">
-              <input type="hidden" name="_csrf" value="<%= csrf %>">
-              <input type="text" name="caption" value="<%= p.caption || '' %>" maxlength="120" placeholder="Add a caption" aria-label="Caption">
-              <button class="btn sm secondary">Save</button>
-            </form>
-            <div class="pactions">
-              <% if (i > 0) { %>
-                <form class="inline-form" method="post" action="/landlord/photos/<%= p.id %>/cover"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm secondary">★ Make cover</button></form>
-                <form class="inline-form" method="post" action="/landlord/photos/<%= p.id %>/move"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="direction" value="up"><button class="btn sm secondary" aria-label="Move earlier">←</button></form>
-              <% } %>
-              <% if (i < photos.length - 1) { %>
-                <form class="inline-form" method="post" action="/landlord/photos/<%= p.id %>/move"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="direction" value="down"><button class="btn sm secondary" aria-label="Move later">→</button></form>
-              <% } %>
-              <form class="inline-form" method="post" action="/landlord/photos/<%= p.id %>/delete" onsubmit="return confirm('Remove this photo?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm danger">Remove</button></form>
-            </div>
-          </div>
-        </div>
+    <h2>Photos, room by room</h2>
+    <p class="muted small" style="margin-bottom:14px">Upload photos into the section for each room so tenants can see every part of the home. The cover photo shows first on the listings. JPG, PNG or WebP, up to <%= uploadLimits.MAX_FILE_MB %> MB each, <%= uploadLimits.MAX_FILES_PER_UPLOAD %> at a time.</p>
+    <div class="room-checklist">
+      <% groups.filter(g => g.room.key !== 'other').forEach(g => { %>
+        <a href="#room-<%= g.room.key %>" class="room-chip <%= g.photos.length ? 'done' : '' %>"><span class="tick" aria-hidden="true"><%= g.photos.length ? '✓' : '' %></span><%= g.room.label %><% if (g.photos.length) { %> <span class="n"><%= g.photos.length %></span><% } %></a>
       <% }) %>
     </div>
-  <% } %>
+    <p class="small" style="margin:12px 0 0"><b><%= filled %> of <%= h.rooms.ROOMS.length %></b> rooms have photos · <%= photos.length %> of <%= uploadLimits.MAX_PHOTOS_PER_APARTMENT %> photos used</p>
+  </div>
+
+  <% groups.forEach(g => { const r = g.room; %>
+    <section class="card pad room-section <%= r.key === 'other' ? 'other' : '' %>" id="room-<%= r.key %>">
+      <div class="room-head">
+        <h3><%= r.label %> <span class="count-pill"><%= g.photos.length %></span></h3>
+        <p class="muted small"><%= r.hint %><% if (r.key === 'bedroom') { %> This home has <%= a.bedrooms %> bedroom<%= a.bedrooms === 1 ? '' : 's' %>.<% } %><% if (r.key === 'bathroom') { %> This home has <%= a.bathrooms %> bathroom<%= a.bathrooms === 1 ? '' : 's' %>.<% } %></p>
+      </div>
+
+      <% if (r.key !== 'other') { %>
+        <form method="post" action="<%= base %>/photos?_csrf=<%= csrf %>" enctype="multipart/form-data" class="dropzone room-upload">
+          <input type="hidden" name="room" value="<%= r.key %>">
+          <div class="field"><label for="photos-<%= r.key %>">Choose photos</label><input type="file" id="photos-<%= r.key %>" name="photos" accept="image/jpeg,image/png,image/webp" multiple required></div>
+          <div class="field"><label for="caption-<%= r.key %>">Caption <span class="tiny">(optional)</span></label><input type="text" id="caption-<%= r.key %>" name="caption" maxlength="120" placeholder="<%= r.example %>"></div>
+          <button class="btn">Upload to <%= r.label %></button>
+        </form>
+      <% } %>
+
+      <% if (!g.photos.length) { %>
+        <p class="muted small room-empty">No photos here yet.</p>
+      <% } else { %>
+        <div class="photo-grid">
+          <% g.photos.forEach((p, k) => { %>
+            <div class="card photo-item">
+              <div class="thumb">
+                <img src="<%= h.photoSrc(p.filename, 'thumb') %>" alt="<%= p.caption || r.label %>" loading="lazy">
+                <% if (p.id === coverId) { %><span class="badge solid plain">★ Cover photo</span><% } %>
+              </div>
+              <div class="pbody">
+                <form class="cap-form" method="post" action="/landlord/photos/<%= p.id %>/caption">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <input type="text" name="caption" value="<%= p.caption || '' %>" maxlength="120" placeholder="Add a caption" aria-label="Caption">
+                  <button class="btn sm secondary">Save</button>
+                </form>
+                <form class="room-form" method="post" action="/landlord/photos/<%= p.id %>/room">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <label for="room-of-<%= p.id %>" class="tiny">Room</label>
+                  <select id="room-of-<%= p.id %>" name="room" onchange="this.form.submit()">
+                    <% if (r.key === 'other') { %><option value="" selected disabled>Choose a room…</option><% } %>
+                    <% h.rooms.ROOMS.forEach(o => { %><option value="<%= o.key %>" <%= o.key === r.key ? 'selected' : '' %>><%= o.label %></option><% }) %>
+                  </select>
+                  <noscript><button class="btn sm secondary">Move</button></noscript>
+                </form>
+                <div class="pactions">
+                  <% if (p.id !== coverId) { %>
+                    <form class="inline-form" method="post" action="/landlord/photos/<%= p.id %>/cover"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm secondary">★ Make cover</button></form>
+                  <% } %>
+                  <% if (k > 0) { %>
+                    <form class="inline-form" method="post" action="/landlord/photos/<%= p.id %>/move"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="direction" value="up"><button class="btn sm secondary" aria-label="Move earlier">←</button></form>
+                  <% } %>
+                  <% if (k < g.photos.length - 1) { %>
+                    <form class="inline-form" method="post" action="/landlord/photos/<%= p.id %>/move"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="direction" value="down"><button class="btn sm secondary" aria-label="Move later">→</button></form>
+                  <% } %>
+                  <form class="inline-form" method="post" action="/landlord/photos/<%= p.id %>/delete" onsubmit="return confirm('Remove this photo?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm danger">Remove</button></form>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  <% }) %>
 <% } %>
 
 <% if (tab === 'edit') { %>

@@ -1,5 +1,5 @@
 <%- include('partials/header') %>
-<% const a = apartment; const cover = photos[0]; const extras = (a.amenities || '').split(',').map(s => s.trim()).filter(Boolean); %>
+<% const a = apartment; const cover = photos[0]; const photoGroups = h.rooms.groupByRoom(photos).filter(g => g.photos.length); const ordered = photoGroups.flatMap(g => g.photos.map(p => ({ ...p, roomLabel: g.room.key === 'other' ? 'More photos' : g.room.label })));  const extras = (a.amenities || '').split(',').map(s => s.trim()).filter(Boolean); %>
 
 <!-- Hero with cover photo -->
 <section class="apt-hero">
@@ -49,13 +49,20 @@
         <span class="eyebrow">The apartment</span>
         <h2 class="big">Take a look around</h2>
         <% if (photos.length) { %>
-          <div class="gallery" style="margin-top:16px">
-            <% photos.forEach((p, i) => { %>
-              <button type="button" class="shot <%= i === 0 && photos.length > 2 ? 'wide' : '' %>" data-index="<%= i %>" aria-label="View photo: <%= p.caption || 'Photo ' + (i + 1) %>">
-                <img src="<%= h.photoSrc(p.filename, 'thumb') %>" alt="<%= p.caption || a.title %>" loading="lazy">
-                <% if (p.caption) { %><span class="cap"><%= p.caption %></span><% } %>
-              </button>
-            <% }) %>
+          <div class="gallery-groups">
+          <% let shotIndex = 0; photoGroups.forEach(g => { const label = g.room.key === 'other' ? 'More photos' : g.room.label; %>
+            <div class="gallery-group" style="--n: <%= Math.min(g.photos.length, 3) %>">
+              <h3><%= label %> <span class="muted small"><%= g.photos.length %> photo<%= g.photos.length === 1 ? '' : 's' %></span></h3>
+              <div class="gallery">
+                <% g.photos.forEach((p, k) => { const i = shotIndex++; %>
+                  <button type="button" class="shot <%= k === 0 && g.photos.length > 2 ? 'wide' : '' %>" data-index="<%= i %>" aria-label="View photo: <%= p.caption || label %>">
+                    <img src="<%= h.photoSrc(p.filename, 'thumb') %>" alt="<%= p.caption || label %>" loading="lazy">
+                    <% if (p.caption) { %><span class="cap"><%= p.caption %></span><% } %>
+                  </button>
+                <% }) %>
+              </div>
+            </div>
+          <% }) %>
           </div>
         <% } else { %>
           <div class="card empty" style="margin-top:16px">No photos yet. <% if (applyState === 'owner') { %><a href="/landlord/apartments/<%= a.id %>?tab=photos">Add photos</a><% } else { %>Check back soon.<% } %></div>
@@ -217,7 +224,7 @@
 </dialog>
 <script>
   (function () {
-    var photos = <%- JSON.stringify(photos.map(p => ({ src: h.photoSrc(p.filename), thumb: h.photoSrc(p.filename, 'thumb'), caption: p.caption || '' }))).replace(/</g, '\\u003c') %>;
+    var photos = <%- JSON.stringify(ordered.map(p => ({ src: h.photoSrc(p.filename), thumb: h.photoSrc(p.filename, 'thumb'), caption: p.caption && p.caption.toLowerCase() !== p.roomLabel.toLowerCase() ? p.roomLabel + ' · ' + p.caption : p.roomLabel }))).replace(/</g, '\\u003c') %>;
     var dlg = document.getElementById('lightbox'), img = dlg.querySelector('img'), cap = dlg.querySelector('figcaption'), i = 0;
     function show(n) {
       i = (n + photos.length) % photos.length;

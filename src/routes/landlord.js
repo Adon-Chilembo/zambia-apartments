@@ -5,6 +5,7 @@ const { flash, requireRole, currentPeriod } = require('../helpers');
 const { cleanServices } = require('../services');
 const uploads = require('../uploads');
 const notify = require('../notify');
+const rooms = require('../rooms');
 
 const router = express.Router();
 router.use(requireRole('landlord'));
@@ -344,7 +345,7 @@ function ownPhoto(req, id) {
   );
 }
 
-const photosTab = (aptId) => `/landlord/apartments/${aptId}?tab=photos`;
+const photosTab = (aptId, room) => `/landlord/apartments/${aptId}?tab=photos` + (room ? '#room-' + room : '');
 
 // Check ownership before multer writes anything to disk.
 function requireOwnApartment(req, res, next) {
@@ -356,18 +357,25 @@ function requireOwnApartment(req, res, next) {
 router.post('/apartments/:id/photos', requireOwnApartment, uploads.upload.array('photos', uploads.MAX_FILES_PER_UPLOAD), (req, res) => {
   const apt = req.apartment;
   const files = req.files || [];
+  const room = String(req.body.room || '');
+  if (!rooms.isRoom(room)) {
+    files.forEach((file) => uploads.removeFile(file.filename));
+    flash(req, 'error', 'Choose which room these photos show.');
+    return res.redirect(photosTab(apt.id));
+  }
+  const roomLabel = rooms.roomOf(room).label;
   const good = files.filter((file) => uploads.isRealImage(file.path));
   files.filter((file) => !good.includes(file)).forEach((file) => uploads.removeFile(file.filename));
 
   const existing = get('SELECT COUNT(*) AS n, COALESCE(MAX(sort_order), -1) AS last FROM apartment_photos WHERE apartment_id = ?', apt.id);
-  const room = Math.max(0, uploads.MAX_PHOTOS_PER_APARTMENT - existing.n);
-  const kept = good.slice(0, room);
-  good.slice(room).forEach((file) => uploads.removeFile(file.filename));
+  const space = Math.max(0, uploads.MAX_PHOTOS_PER_APARTMENT - existing.n);
+  const kept = good.slice(0, space);
+  good.slice(space).forEach((file) => uploads.removeFile(file.filename));
 
   const caption = String(req.body.caption || '').trim().slice(0, 120);
   transaction(() => {
     kept.forEach((file, i) => {
-      run('INSERT INTO apartment_photos (apartment_id, filename, caption, sort_order) VALUES (?, ?, ?, ?)', apt.id, file.filename, caption, existing.last + 1 + i);
+      run('INSERT INTO apartment_photos (apartment_id, filename, caption, sort_order, room) VALUES (?, ?, ?, ?, ?)', apt.id, file.filename, caption, existing.last + 1 + i, room);
     });
   });
 
@@ -375,9 +383,22 @@ router.post('/apartments/:id/photos', requireOwnApartment, uploads.upload.array(
   else if (!kept.length) flash(req, 'error', good.length ? `This apartment already has the maximum of ${uploads.MAX_PHOTOS_PER_APARTMENT} photos.` : 'Those files are not valid JPG, PNG or WebP images.');
   else {
     const skipped = files.length - kept.length;
-    flash(req, 'success', `${kept.length} photo${kept.length === 1 ? '' : 's'} added.` + (skipped ? ` ${skipped} skipped (not a valid image, or over the limit).` : ''));
+    flash(req, 'success', `${kept.length} photo${kept.length === 1 ? '' : 's'} added to ${roomLabel}.` + (skipped ? ` ${skipped} skipped (not a valid image, or over the limit).` : ''));
   }
-  res.redirect(photosTab(apt.id));
+  res.redirect(photosTab(apt.id, room));
+});
+
+router.post('/photos/:id/room', (req, res) => {
+  const photo = ownPhoto(req, req.params.id);
+  if (!photo) return res.redirect('/landlord');
+  const room = String(req.body.room || '');
+  if (!rooms.isRoom(room)) {
+    flash(req, 'error', 'Choose a room for this photo.');
+    return res.redirect(photosTab(photo.apartment_id));
+  }
+  run('UPDATE apartment_photos SET room = ? WHERE id = ?', room, photo.id);
+  flash(req, 'success', `Photo moved to ${rooms.roomOf(room).label}.`);
+  res.redirect(photosTab(photo.apartment_id, room));
 });
 
 router.post('/photos/:id/caption', (req, res) => {
@@ -385,7 +406,7 @@ router.post('/photos/:id/caption', (req, res) => {
   if (!photo) return res.redirect('/landlord');
   run('UPDATE apartment_photos SET caption = ? WHERE id = ?', String(req.body.caption || '').trim().slice(0, 120), photo.id);
   flash(req, 'success', 'Caption saved.');
-  res.redirect(photosTab(photo.apartment_id));
+  res.redirect(photosTab(photo.apartment_id, rooms.roomOf(photo.room).key));
 });
 
 router.post('/photos/:id/cover', (req, res) => {
@@ -394,20 +415,26 @@ router.post('/photos/:id/cover', (req, res) => {
   const min = get('SELECT MIN(sort_order) AS m FROM apartment_photos WHERE apartment_id = ?', photo.apartment_id).m;
   run('UPDATE apartment_photos SET sort_order = ? WHERE id = ?', min - 1, photo.id);
   flash(req, 'success', 'Cover photo updated. It now shows first on the listings.');
-  res.redirect(photosTab(photo.apartment_id));
+  res.redirect(photosTab(photo.apartment_id, rooms.roomOf(photo.room).key));
 });
 
 router.post('/photos/:id/move', (req, res) => {
   const photo = ownPhoto(req, req.params.id);
   if (!photo) return res.redirect('/landlord');
-  const list = all('SELECT id FROM apartment_photos WHERE apartment_id = ? ORDER BY sort_order, id', photo.apartment_id).map((r) => r.id);
-  const i = list.indexOf(photo.id);
-  const j = req.body.direction === 'up' ? i - 1 : i + 1;
-  if (j >= 0 && j < list.length) {
+  // Arrows move a photo past its neighbour in the same room section.
+  const all_ = all('SELECT id, room FROM apartment_photos WHERE apartment_id = ? ORDER BY sort_order, id', photo.apartment_id);
+  const sameKey = rooms.roomOf(photo.room).key;
+  const same = all_.filter((p) => rooms.roomOf(p.room).key === sameKey).map((p) => p.id);
+  const k = same.indexOf(photo.id);
+  const other = same[req.body.direction === 'up' ? k - 1 : k + 1];
+  if (other) {
+    const list = all_.map((p) => p.id);
+    const i = list.indexOf(photo.id);
+    const j = list.indexOf(other);
     [list[i], list[j]] = [list[j], list[i]];
     transaction(() => list.forEach((id, order) => run('UPDATE apartment_photos SET sort_order = ? WHERE id = ?', order, id)));
   }
-  res.redirect(photosTab(photo.apartment_id));
+  res.redirect(photosTab(photo.apartment_id, sameKey));
 });
 
 router.post('/photos/:id/delete', (req, res) => {
@@ -416,7 +443,7 @@ router.post('/photos/:id/delete', (req, res) => {
   run('DELETE FROM apartment_photos WHERE id = ?', photo.id);
   uploads.removeFile(photo.filename);
   flash(req, 'info', 'Photo removed.');
-  res.redirect(photosTab(photo.apartment_id));
+  res.redirect(photosTab(photo.apartment_id, rooms.roomOf(photo.room).key));
 });
 
 module.exports = router;

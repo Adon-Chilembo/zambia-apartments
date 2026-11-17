@@ -147,6 +147,16 @@ CREATE TABLE IF NOT EXISTS apartment_photos (
 CREATE INDEX IF NOT EXISTS idx_photos_apartment ON apartment_photos(apartment_id, sort_order);
 `);
 
+// Which room a photo shows (see src/rooms.js). Photos from before rooms existed are sorted
+// by their caption where it is clear, and the rest wait in "Other photos" for the landlord.
+addColumn('apartment_photos', 'room', 'TEXT');
+{
+  const { guessRoom } = require('./rooms');
+  const unsorted = db.prepare('SELECT id, caption FROM apartment_photos WHERE room IS NULL').all();
+  const setRoom = db.prepare('UPDATE apartment_photos SET room = ? WHERE id = ?');
+  unsorted.forEach((p) => setRoom.run(guessRoom(p.caption) || 'other', p.id));
+}
+
 /** Run several statements atomically. */
 function transaction(fn) {
   db.exec('BEGIN');

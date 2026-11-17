@@ -172,6 +172,7 @@ const STATUS_LABEL = {
 };
 
 module.exports = {
+  rooms: require('./rooms'),
   money,
   NETWORKS,
   date,

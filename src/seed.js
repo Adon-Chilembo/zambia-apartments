@@ -150,15 +150,15 @@ transaction(() => {
   const pick = (list) => list[photoTurn % list.length];
   const addPhotos = (aptId, kind) => {
     const set = [
-      [pick(DEMO_PHOTOS[kind]), kind === 'houses' ? 'Front of the house' : 'The building'],
-      [pick(DEMO_PHOTOS.living), 'Living room'],
-      [pick(DEMO_PHOTOS.bedroom), 'Main bedroom'],
-      [pick(DEMO_PHOTOS.kitchen), 'Kitchen'],
-      [pick(DEMO_PHOTOS.bathroom), 'Bathroom'],
+      [pick(DEMO_PHOTOS[kind]), kind === 'houses' ? 'Front of the house' : 'The building', 'outside'],
+      [pick(DEMO_PHOTOS.living), 'Living room', 'living'],
+      [pick(DEMO_PHOTOS.bedroom), 'Main bedroom', 'bedroom'],
+      [pick(DEMO_PHOTOS.kitchen), 'Kitchen', 'kitchen'],
+      [pick(DEMO_PHOTOS.bathroom), 'Bathroom', 'bathroom'],
     ];
-    if (photoTurn % 3 === 0) set.push([pick(DEMO_PHOTOS.outdoor), 'Outside seating area']);
-    set.forEach(([id, caption], i) =>
-      run('INSERT INTO apartment_photos (apartment_id, filename, caption, sort_order) VALUES (?, ?, ?, ?)', aptId, demoPhotoFile(id), caption, i)
+    if (photoTurn % 3 === 0) set.push([pick(DEMO_PHOTOS.outdoor), 'Outside seating area', 'yard']);
+    set.forEach(([id, caption, room], i) =>
+      run('INSERT INTO apartment_photos (apartment_id, filename, caption, sort_order, room) VALUES (?, ?, ?, ?, ?)', aptId, demoPhotoFile(id), caption, i, room)
     );
     photoTurn++;
   };
