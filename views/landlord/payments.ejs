@@ -14,7 +14,7 @@
             <td><b><%= p.tenant_name %></b></td>
             <td><a href="/landlord/apartments/<%= p.apartment_id %>?tab=payments"><%= p.apartment_title %></a></td>
             <td><%= h.period(p.period) %></td>
-            <td><%= h.NETWORKS[p.network] || 'Mobile Money' %><div class="tiny"><%= p.phone %></div></td>
+            <td><%= h.payMethod(p) %><div class="tiny"><%= h.payFrom(p) %></div></td>
             <td class="tiny"><%= p.reference %></td>
             <td class="num"><%= h.money(p.amount) %></td>
             <td><%- include('../partials/status', { s: p.status }) %></td>

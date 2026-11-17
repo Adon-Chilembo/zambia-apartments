@@ -1,6 +1,6 @@
 const express = require('express');
 const { get, all, run, transaction } = require('../db');
-const { flash, requireRole, activeTenancy, currentPeriod, periodOptions, parseOccupants, ISSUE_CATEGORIES } = require('../helpers');
+const { flash, requireRole, activeTenancy, currentPeriod, periodOptions, parseOccupants, payMethodFields, ISSUE_CATEGORIES } = require('../helpers');
 const payments = require('../payments');
 const notify = require('../notify');
 
@@ -164,10 +164,9 @@ router.post('/pay', async (req, res) => {
     const home = activeTenancy(req.user.id);
     if (!home) return res.redirect('/tenant');
     const period = periodOptions().includes(req.body.period) ? req.body.period : currentPeriod();
-    const network = Object.keys(payments.NETWORKS).includes(req.body.network) ? req.body.network : null;
-    const phone = String(req.body.phone || '').replace(/[^\d+]/g, '');
-    if (!network || phone.replace(/\D/g, '').length < 9) {
-      flash(req, 'error', 'Choose your Mobile Money network and enter a valid phone number.');
+    const how = payMethodFields(req.body);
+    if (how.error) {
+      flash(req, 'error', how.error);
       return res.redirect('/tenant?tab=payments');
     }
     if (get("SELECT id FROM payments WHERE tenancy_id = ? AND period = ? AND status = 'success'", home.tenancy_id, period)) {
@@ -177,15 +176,18 @@ router.post('/pay', async (req, res) => {
 
     reference = payments.newReference();
     run(
-      `INSERT INTO payments (tenancy_id, apartment_id, tenant_id, amount, period, network, phone, provider, reference)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO payments (tenancy_id, apartment_id, tenant_id, amount, period, method, network, phone, bank, account_name, provider, reference)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       home.tenancy_id,
       home.id,
       req.user.id,
       home.rent_amount,
       period,
-      network,
-      phone,
+      how.method,
+      how.network,
+      how.phone,
+      how.bank,
+      how.account_name,
       payments.provider,
       reference
     );
@@ -196,7 +198,8 @@ router.post('/pay', async (req, res) => {
       amount: home.rent_amount,
       email: req.user.email,
       name: req.user.name,
-      phone,
+      phone: how.phone || req.user.phone,
+      method: how.method,
       title: `Rent for ${period} · ${home.title}`,
       callbackUrl: `${base}/pay/callback`,
       simulatorUrl: `/pay/simulate/${reference}`,

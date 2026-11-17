@@ -1,0 +1,116 @@
+<%- include('../partials/header') %>
+<% const listedDays = h.fees.daysLeft(w.subscription_until); const featDays = h.fees.daysLeft(w.featured_until); %>
+<div class="page-head">
+  <div><h1>My services</h1><p class="muted">Your profile in the maintenance workers directory, your plan and what landlords and tenants say about you.</p></div>
+  <a class="btn sm secondary" href="/workers/<%= w.id %>">View my public profile</a>
+</div>
+
+<div class="stat-row">
+  <div class="card stat">
+    <div class="label">Listing</div>
+    <div class="value"><%= w.listed ? 'Active' : 'Not listed' %></div>
+    <div class="sub"><%= w.listed ? 'Until ' + h.date(w.subscription_until) + ' · ' + listedDays + ' days left' : 'Pay ' + h.money(h.fees.WORKER_MONTHLY) + '/month to appear' %></div>
+  </div>
+  <div class="card stat">
+    <div class="label">Top list</div>
+    <div class="value"><%= w.featured ? 'Promoted' : w.top_rated ? 'Top rated' : 'Not yet' %></div>
+    <div class="sub"><%= w.featured ? 'Until ' + h.date(w.featured_until) : w.top_rated ? 'Earned with your reviews' : 'Promote or earn great reviews' %></div>
+  </div>
+  <div class="card stat">
+    <div class="label">Rating</div>
+    <div class="value"><%= w.reviews ? w.avg_rating.toFixed(1) + ' ★' : '—' %></div>
+    <div class="sub"><%= w.reviews %> review<%= w.reviews === 1 ? '' : 's' %></div>
+  </div>
+</div>
+
+<nav class="tabs">
+  <a href="/worker?tab=profile" class="<%= tab === 'profile' ? 'active' : '' %>">Profile &amp; CV</a>
+  <a href="/worker?tab=plan" class="<%= tab === 'plan' ? 'active' : '' %>">My plan</a>
+  <a href="/worker?tab=reviews" class="<%= tab === 'reviews' ? 'active' : '' %>">Reviews <span class="count"><%= w.reviews %></span></a>
+</nav>
+
+<% if (tab === 'profile') { %>
+  <form class="card pad" style="max-width:820px" method="post" action="/worker/profile?_csrf=<%= csrf %>" enctype="multipart/form-data">
+    <h2>Your profile</h2>
+    <p class="muted small">This is what landlords and tenants see when they look for help. Be clear about what you do and where.</p>
+    <div class="row">
+      <div class="field"><label for="trade">Main type of work</label>
+        <select id="trade" name="trade"><% h.trades.TRADES.forEach(t => { %><option value="<%= t.key %>" <%= w.trade === t.key ? 'selected' : '' %>><%= t.label %></option><% }) %></select>
+      </div>
+      <div class="field"><label for="years">Years of experience</label><input type="number" id="years" name="experience_years" min="0" max="60" value="<%= w.experience_years ?? '' %>"></div>
+    </div>
+    <div class="field"><label for="headline">One-line summary</label><input type="text" id="headline" name="headline" maxlength="120" required value="<%= w.headline || '' %>" placeholder="e.g. Qualified plumber: geysers, leaks, borehole pumps"></div>
+    <div class="field"><label for="bio">About your work (your CV in words)</label><textarea id="bio" name="bio" rows="6" maxlength="4000" required placeholder="Your training, past jobs, the kind of work you do best…"><%= w.bio || '' %></textarea></div>
+    <div class="field"><label for="skills">Skills <span class="tiny">(separate with commas)</span></label><input type="text" id="skills" name="skills" maxlength="500" value="<%= w.skills || '' %>" placeholder="Geyser installation, Leak repair, Drain unblocking"></div>
+    <div class="row">
+      <div class="field"><label for="city">City</label><input type="text" id="city" name="city" maxlength="60" required value="<%= w.city || '' %>" placeholder="Lusaka"></div>
+      <div class="field"><label for="areas">Areas you cover</label><input type="text" id="areas" name="areas" maxlength="200" value="<%= w.areas || '' %>" placeholder="Kabulonga, Woodlands, Ibex Hill"></div>
+    </div>
+    <div class="field"><label for="rates">Rates</label><input type="text" id="rates" name="rates" maxlength="200" value="<%= w.rates || '' %>" placeholder="Call-out K150, then by the job"></div>
+    <div class="row">
+      <div class="field"><label for="phone">Phone</label><input type="tel" id="phone" name="phone" value="<%= w.phone || '' %>" placeholder="097 123 4567"></div>
+      <div class="field"><label for="whatsapp">WhatsApp <span class="tiny">(if different)</span></label><input type="tel" id="whatsapp" name="whatsapp" value="<%= w.whatsapp || '' %>"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label for="cv">CV <span class="tiny">(PDF, up to <%= 5 %> MB)</span></label><input type="file" id="cv" name="cv" accept="application/pdf">
+        <% if (w.cv_filename) { %><span class="tiny">Current CV: <a href="/uploads/<%= w.cv_filename %>" target="_blank" rel="noopener">open</a></span><% } %>
+      </div>
+      <div class="field"><label for="photo">Profile photo <span class="tiny">(JPG, PNG or WebP)</span></label><input type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/webp"></div>
+    </div>
+    <button class="btn">Save profile</button>
+  </form>
+  <% if (w.cv_filename) { %>
+    <form method="post" action="/worker/cv/delete" style="margin-top:10px" onsubmit="return confirm('Remove your CV?')"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn sm danger">Remove my CV</button></form>
+  <% } %>
+<% } %>
+
+<% if (tab === 'plan') { %>
+  <% if (!complete) { %><div class="callout" style="margin-bottom:16px">Fill in <a href="/worker?tab=profile">your profile</a> first so people know what you do.</div><% } %>
+  <div class="grid-2">
+    <div class="card pad">
+      <h2>Monthly listing</h2>
+      <p class="muted small">Appear in the maintenance workers directory so landlords and tenants can find and contact you. <b><%= h.money(h.fees.WORKER_MONTHLY) %> per month.</b></p>
+      <p><% if (w.listed) { %><span class="badge green">Active until <%= h.date(w.subscription_until) %></span> Paying now adds to the end date.<% } else { %><span class="badge red">Not listed</span><% } %></p>
+      <%- include('../partials/fee-form', { kind: 'worker', targetId: w.id, monthly: h.fees.WORKER_MONTHLY, button: w.listed ? 'Extend listing' : 'Get listed', id: 'sub' }) %>
+    </div>
+    <div class="card pad">
+      <h2>🏆 Get on the top list</h2>
+      <p class="muted small">Two ways to the top: pay to be promoted (shown first, with a "Promoted" badge), or earn it free with an average of <%= h.fees.TOP_RATED_MIN_AVERAGE %>★ from at least <%= h.fees.TOP_RATED_MIN_REVIEWS %> landlords and tenants.</p>
+      <p><% if (w.featured) { %><span class="badge gold">Promoted until <%= h.date(w.featured_until) %></span><% } %> <% if (w.top_rated) { %><span class="badge green">Top rated</span><% } else { %><span class="tiny">Your reviews: <%= w.reviews %> · average <%= w.reviews ? w.avg_rating.toFixed(1) : '—' %></span><% } %></p>
+      <% if (!w.listed) { %>
+        <p class="small muted">Get listed first. Promotion is an extra <%= h.money(h.fees.FEATURED_MONTHLY) %>/month on top.</p>
+      <% } else { %>
+        <%- include('../partials/fee-form', { kind: 'featured', targetId: w.id, monthly: h.fees.FEATURED_MONTHLY, button: w.featured ? 'Extend promotion' : 'Promote me', id: 'feat' }) %>
+      <% } %>
+    </div>
+  </div>
+  <div class="card" style="margin-top:18px">
+    <div class="card-head"><h2>Payment history</h2></div>
+    <% if (!feeHistory.length) { %><div class="empty">No payments yet.</div><% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>For</th><th>Method</th><th>Reference</th><th class="num">Amount</th><th>Status</th></tr></thead>
+        <tbody><% feeHistory.forEach(f => { %>
+          <tr><td><%= h.date(f.paid_at || f.created_at) %></td><td><%= h.fees.KINDS[f.kind].label %> · <%= f.months %> mo<% if (f.paid_until) { %><div class="tiny">until <%= h.date(f.paid_until) %></div><% } %></td>
+            <td><%= h.payMethod(f) %><div class="tiny"><%= h.payFrom(f) %></div></td><td class="tiny"><%= f.reference %></td><td class="num"><%= h.money(f.amount) %></td><td><%- include('../partials/status', { s: f.status }) %></td></tr>
+        <% }) %></tbody>
+      </table></div>
+    <% } %>
+  </div>
+<% } %>
+
+<% if (tab === 'reviews') { %>
+  <div class="card" style="max-width:760px">
+    <% if (!reviews.length) { %><div class="empty">No reviews yet. Ask the landlords and tenants you work for to rate you on your profile page.</div><% } else { %>
+      <ul class="list">
+        <% reviews.forEach(r => { %>
+          <li>
+            <div class="li-row"><b><%= r.name %> <span class="tiny">· <%= r.role %></span></b><span class="stars"><%= '★'.repeat(r.rating) %><span class="off"><%= '★'.repeat(5 - r.rating) %></span></span></div>
+            <% if (r.comment) { %><p class="small" style="margin:4px 0 0"><%= r.comment %></p><% } %>
+            <div class="tiny"><%= h.date(r.created_at) %></div>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </div>
+<% } %>
+<%- include('../partials/footer') %>

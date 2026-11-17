@@ -6,8 +6,9 @@
     <input type="hidden" name="_csrf" value="<%= csrf %>">
     <input type="hidden" name="next" value="<%= next %>">
     <div class="role-pick">
-      <label><input type="radio" name="role" value="tenant" <%= form.role !== 'landlord' ? 'checked' : '' %>><b>I'm a tenant</b><span class="tiny">Find a home, report issues, pay rent</span></label>
+      <label><input type="radio" name="role" value="tenant" <%= !['landlord', 'worker'].includes(form.role) ? 'checked' : '' %>><b>I'm a tenant</b><span class="tiny">Find a home, report issues, pay rent</span></label>
       <label><input type="radio" name="role" value="landlord" <%= form.role === 'landlord' ? 'checked' : '' %>><b>I'm a landlord</b><span class="tiny">List apartments, manage tenants</span></label>
+      <label><input type="radio" name="role" value="worker" <%= form.role === 'worker' ? 'checked' : '' %>><b>I'm a maintenance worker</b><span class="tiny">Plumber, electrician, builder… get hired by landlords</span></label>
     </div>
     <div class="field"><label for="name">Full name</label><input type="text" id="name" name="name" value="<%= form.name || '' %>" required></div>
     <div class="field"><label for="email">Email</label><input type="email" id="email" name="email" value="<%= form.email || '' %>" required></div>

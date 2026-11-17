@@ -10,6 +10,47 @@ const NETWORKS = {
   zamtel: 'Zamtel Kwacha',
 };
 
+// Banks tenants and landlords can pay from.
+const BANKS = {
+  zanaco: 'Zanaco',
+  absa: 'Absa Bank Zambia',
+  stanbic: 'Stanbic Bank',
+  fnb: 'FNB Zambia',
+  indo: 'Indo-Zambia Bank',
+  access: 'Access Bank Zambia',
+  ecobank: 'Ecobank Zambia',
+  uba: 'UBA Zambia',
+  zicb: 'ZICB',
+  fcb: 'First Capital Bank',
+  citi: 'Citibank Zambia',
+  natsave: 'NATSAVE',
+};
+
+/** How a payment was made, e.g. "MTN MoMo" or "Zanaco". */
+function payMethod(p) {
+  if (p && p.method === 'bank') return BANKS[p.bank] || 'Bank';
+  return NETWORKS[p && p.network] || 'Mobile Money';
+}
+/** The account it came from: phone number, or the account holder for bank payments. */
+const payFrom = (p) => (p && p.method === 'bank' ? p.account_name || '' : (p && p.phone) || '');
+
+/**
+ * Read the payment-method part of a pay form (see views/partials/pay-method.ejs).
+ * Returns { method, network, phone, bank, account_name } or { error }.
+ */
+function payMethodFields(body) {
+  if (body.method === 'bank') {
+    const bank = Object.keys(BANKS).includes(body.bank) ? body.bank : null;
+    const account_name = String(body.account_name || '').trim().slice(0, 100);
+    if (!bank || !account_name) return { error: 'Choose your bank and enter the account holder name.' };
+    return { method: 'bank', network: null, phone: null, bank, account_name };
+  }
+  const network = Object.keys(NETWORKS).includes(body.network) ? body.network : null;
+  const phone = String(body.phone || '').replace(/[^\d+]/g, '');
+  if (!network || phone.replace(/\D/g, '').length < 9) return { error: 'Choose your Mobile Money network and enter a valid phone number.' };
+  return { method: 'mobile_money', network, phone, bank: null, account_name: null };
+}
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function date(value) {
@@ -167,14 +208,21 @@ const STATUS_LABEL = {
   failed: 'Failed',
   approved: 'Approved',
   rejected: 'Rejected',
+  failed_fee: 'Failed',
   available: 'Available',
   occupied: 'Occupied',
 };
 
 module.exports = {
   rooms: require('./rooms'),
+  trades: require('./trades'),
+  fees: require('./fees'),
   money,
   NETWORKS,
+  BANKS,
+  payMethod,
+  payFrom,
+  payMethodFields,
   date,
   period,
   currentPeriod,

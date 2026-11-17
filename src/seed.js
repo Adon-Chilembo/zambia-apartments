@@ -9,7 +9,7 @@ for (const f of [dbFile, dbFile + '-wal', dbFile + '-shm']) fs.rmSync(f, { force
 const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'data', 'uploads');
 if (fs.existsSync(uploadDir)) {
   for (const name of fs.readdirSync(uploadDir)) {
-    if (/^[a-f0-9]{32}\.(jpg|png|webp)$/.test(name)) fs.rmSync(path.join(uploadDir, name), { force: true });
+    if (/^[a-f0-9]{32}\.(jpg|png|webp|pdf)$/.test(name)) fs.rmSync(path.join(uploadDir, name), { force: true });
   }
 }
 
@@ -295,6 +295,77 @@ transaction(() => {
     void li;
   });
 });
+
+// ---------- Listing fees, workers, reviews and notifications ----------
+{
+  const { all, get } = require('./db');
+  const fees = require('./fees');
+  const dayOffset = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+  transaction(() => {
+    // Every demo apartment has its listing fee paid for a while, except one, to show a hidden listing.
+    all('SELECT id, rent_amount FROM apartments ORDER BY id').forEach((a, i) => {
+      run('UPDATE apartments SET listing_paid_until = ? WHERE id = ?', i === 4 ? dayOffset(-3) : dayOffset(5 + ((i * 7) % 50)), a.id);
+    });
+    const mwila = get("SELECT id FROM users WHERE email = 'mwila@landlord.test'").id;
+    all('SELECT id, rent_amount FROM apartments WHERE landlord_id = ? ORDER BY id', mwila).forEach((a, i) => {
+      if (i === 4) return;
+      run(`INSERT INTO fee_payments (user_id, kind, target_id, months, amount, method, network, phone, provider, reference, status, paid_until, created_at, paid_at)
+           VALUES (?, 'listing', ?, 1, ?, 'mobile_money', 'mtn', '097 555 0101', 'simulator', ?, 'success', ?, ?, ?)`,
+        mwila, a.id, fees.listingFee(a.rent_amount), 'ZM-SEEDL' + a.id, get('SELECT listing_paid_until AS u FROM apartments WHERE id = ?', a.id).u, daysAgo(20), daysAgo(20));
+    });
+
+    // Workers: [name, email, phone, trade, headline, bio, skills, years, city, areas, rates, listedDays, featuredDays]
+    const WORKERS = [
+      ['Joseph Mumba', 'joseph', '097 600 1001', 'plumber', 'Qualified plumber: geysers, leaks and borehole pumps', 'Trade-tested plumber (TEVETA Level 3) with 12 years of work across Lusaka. I install and repair geysers, fix leaks and burst pipes, unblock drains and service borehole pumps and pressure tanks.\n\nPast work includes maintenance for two apartment complexes in Kabulonga and Woodlands.', 'Geyser installation, Leak repair, Drain unblocking, Borehole pumps, Pressure tanks', 12, 'Lusaka', 'Kabulonga, Woodlands, Ibex Hill, Rhodes Park', 'Call-out K150, then by the job', 40, 25],
+      ['Grace Chileshe', 'grace', '096 600 1002', 'electrician', 'Registered electrician for wiring, DB boards and prepaid meters', 'ERB-registered electrician. Rewiring, fault finding, distribution boards, changeover switches for generators, prepaid ZESCO meter moves and safety certificates for rentals.', 'House wiring, Fault finding, DB boards, Changeover switches, Inspection certificates', 9, 'Lusaka', 'All of Lusaka', 'Fault finding from K200', 55, 0],
+      ['Peter Sakala', 'peter', '097 600 1003', 'solar', 'Solar and inverter systems that keep the lights on', 'I design and install solar and inverter backup for homes and flats, from small 1 kVA systems to full off-grid. Battery replacement and servicing too.', 'Inverters, Lithium batteries, Solar panels, Load-shedding backup', 7, 'Lusaka', 'Lusaka and Chongwe', 'Free quote', 30, 0],
+      ['Mary Banda', 'mary', '095 600 1004', 'cleaner', 'Move-in and move-out deep cleaning', 'Small cleaning team (3 people) for end-of-tenancy and move-in cleans, carpets, windows and ovens. We bring our own equipment.', 'Deep cleaning, End of tenancy, Carpets, Windows', 5, 'Lusaka', 'Rhodes Park, Chelstone, Chilenje', '2-bedroom deep clean K800', 20, 0],
+      ['Chisomo Phiri', 'chisomo', '097 600 1005', 'builder', 'Builder for repairs, extensions and boundary walls', 'Bricklaying, plastering, boundary walls, cracks and small extensions. I can also manage painting and tiling with my team.', 'Bricklaying, Plastering, Boundary walls, Crack repair', 15, 'Kitwe', 'Kitwe and Ndola', 'Priced per job', 45, 0],
+      ['Brian Tembo', 'brian', '096 600 1006', 'carpenter', 'Fitted wardrobes, kitchen units and door repairs', 'Carpenter making built-in wardrobes and kitchen cupboards to measure. Door and window frame repairs, locks fitted.', 'Wardrobes, Kitchen units, Doors, Ceilings', 10, 'Livingstone', 'Livingstone', 'Free measuring', 15, 0],
+      ['Esther Lungu', 'esther', '097 600 1007', 'pest', 'Termites, cockroaches and rodents gone for good', 'Licensed pest control for flats and houses. Termite treatment before building, fumigation and follow-up visits.', 'Termites, Fumigation, Rodents, Bed bugs', 6, 'Ndola', 'Ndola and Kitwe', 'Fumigation from K450', 25, 0],
+      ['Davies Mwanza', 'davies', '097 600 1008', 'painter', 'Interior and exterior painting', 'Painter with a team of four. Interior repaints between tenants, exterior walls and roofs.', 'Interior painting, Exterior painting, Roof painting', 8, 'Lusaka', 'Lusaka', 'From K25 per square metre', -5, 0], // listing expired: hidden
+    ];
+    const workerIds = {};
+    WORKERS.forEach(([name, key, phone, trade, headline, bio, skills, years, city, areas, rates, listedDays, featDays]) => {
+      const uid = user(name, key + '@worker.test', phone, 'worker');
+      workerIds[key] = Number(run(
+        `INSERT INTO workers (user_id, trade, headline, bio, skills, experience_years, city, areas, rates, subscription_until, featured_until, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        uid, trade, headline, bio, skills, years, city, areas, rates, dayOffset(listedDays), featDays ? dayOffset(featDays) : null, daysAgo(60)
+      ).lastInsertRowid);
+      run(`INSERT INTO fee_payments (user_id, kind, target_id, months, amount, method, bank, account_name, provider, reference, status, paid_until, created_at, paid_at)
+           VALUES (?, 'worker', ?, 1, ?, 'bank', 'zanaco', ?, 'simulator', ?, 'success', ?, ?, ?)`,
+        uid, workerIds[key], fees.WORKER_MONTHLY, name, 'ZM-SEEDW' + workerIds[key], dayOffset(listedDays), daysAgo(25), daysAgo(25));
+    });
+
+    // Reviews from landlords and tenants: [worker, reviewer email, stars, comment, days ago]
+    const REVIEWS = [
+      ['joseph', 'mwila@landlord.test', 5, 'Replaced the geyser in Kabulonga the same day. Clean work and fair price.', 30],
+      ['joseph', 'natasha@tenant.test', 5, 'Fixed a leaking pipe under the sink quickly and explained what was wrong.', 18],
+      ['joseph', 'chanda@landlord.test', 4, 'Good work on the borehole pump, came a day later than promised.', 9],
+      ['grace', 'mwila@landlord.test', 5, 'Found a fault two other electricians missed. Very professional.', 40],
+      ['grace', 'mutale@tenant.test', 5, 'Moved our prepaid meter and fitted extra sockets. Neat and safe.', 22],
+      ['grace', 'bupe@tenant.test', 4, 'Good job, polite and on time.', 6],
+      ['peter', 'chanda@landlord.test', 4, 'Inverter works well through load-shedding.', 12],
+      ['mary', 'natasha@tenant.test', 5, 'The flat was spotless for move-in.', 3],
+      ['chisomo', 'chanda@landlord.test', 3, 'Wall is solid but the job ran over by a week.', 15],
+    ];
+    REVIEWS.forEach(([w, email, rating, comment, ago]) => {
+      const reviewer = get('SELECT id FROM users WHERE email = ?', email);
+      if (reviewer) run('INSERT INTO worker_reviews (worker_id, reviewer_id, rating, comment, created_at) VALUES (?, ?, ?, ?, ?)', workerIds[w], reviewer.id, rating, comment, daysAgo(ago));
+    });
+
+    // A few unread notifications so the bell has something to show.
+    const note = (email, kind, text, link, ago) => {
+      const u = get('SELECT id FROM users WHERE email = ?', email);
+      run('INSERT INTO notifications (user_id, kind, text, link, created_at) VALUES (?, ?, ?, ?, ?)', u.id, kind, text, link, daysAgo(ago));
+    };
+    note('mwila@landlord.test', 'listing_hidden', 'Self-contained single room is hidden from the site: its listing fee is due.', '/landlord/apartments/5?tab=listing', 3);
+    note('mwila@landlord.test', 'payment_received', 'Rent received: K 9,500.00 from Natasha Phiri', '/landlord/payments', 1);
+    note('natasha@tenant.test', 'issue_updated', 'Your landlord replied about your report.', '/tenant?tab=issues', 2);
+    note('joseph@worker.test', 'worker_reviewed', 'New 4-star review from Chanda Mulenga', '/workers/' + workerIds.joseph, 9);
+  });
+}
 
 console.log('Database seeded with demo data.');
 console.log('Demo logins are listed in README.md.');

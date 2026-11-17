@@ -1,0 +1,25 @@
+<%# One worker in the directory. Pass `w`. %>
+<% const t = h.trades.tradeOf(w.trade); %>
+<a class="card worker-card <%= w.featured ? 'featured' : '' %>" href="/workers/<%= w.id %>">
+  <div class="wc-top">
+    <% if (w.photo_filename) { %><img class="avatar lg photo" src="<%= h.photoSrc(w.photo_filename) %>" alt="" loading="lazy">
+    <% } else { %><span class="avatar lg"><%= h.initials(w.name) %></span><% } %>
+    <div class="wc-name">
+      <b><%= w.name %></b>
+      <span class="small muted"><%= t.icon %> <%= t.label %><%= w.city ? ' · ' + w.city : '' %></span>
+    </div>
+  </div>
+  <div class="issue-meta" style="margin:10px 0 6px">
+    <% if (w.featured) { %><span class="badge gold">Promoted</span><% } %>
+    <% if (w.top_rated) { %><span class="badge green">Top rated</span><% } %>
+    <% if (w.cv_filename) { %><span class="badge plain">CV</span><% } %>
+  </div>
+  <p class="small wc-headline"><%= w.headline || 'No description yet.' %></p>
+  <div class="wc-foot">
+    <span class="stars-line" aria-label="<%= w.reviews ? w.avg_rating.toFixed(1) + ' out of 5' : 'No ratings yet' %>">
+      <% if (w.reviews) { %><span class="stars"><%= '★'.repeat(Math.round(w.avg_rating)) %><span class="off"><%= '★'.repeat(5 - Math.round(w.avg_rating)) %></span></span> <b><%= w.avg_rating.toFixed(1) %></b> <span class="tiny">(<%= w.reviews %>)</span>
+      <% } else { %><span class="tiny">No ratings yet</span><% } %>
+    </span>
+    <% if (w.experience_years) { %><span class="tiny"><%= w.experience_years %> yrs experience</span><% } %>
+  </div>
+</a>

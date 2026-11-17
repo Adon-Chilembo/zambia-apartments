@@ -16,6 +16,7 @@ const helpers = require('./helpers');
 const services = require('./services');
 const uploads = require('./uploads');
 const multer = require('multer');
+const notifications = require('./notifications');
 
 // Landing-page background. Default: a free Unsplash photo (Unsplash licence) saved in public/demo-photos.
 // Override with HERO_IMAGE_URL.
@@ -58,6 +59,9 @@ app.use((req, res, next) => {
   res.locals.h = helpers;
   res.locals.svc = services;
   res.locals.heroImage = HERO_IMAGE_URL;
+  // The bell in the header: unread count and the latest few.
+  res.locals.unread = req.user ? notifications.unreadCount(req.user.id) : 0;
+  res.locals.recentNotes = req.user ? notifications.latest(req.user.id, 6) : [];
   delete req.session.flash;
   next();
 });
@@ -77,12 +81,16 @@ app.use('/tenant', require('./routes/tenant'));
 app.use('/pay', require('./routes/pay'));
 app.use('/landlord', require('./routes/landlord'));
 app.use('/account', require('./routes/account'));
+app.use('/notifications', require('./routes/notifications'));
+app.use('/fees', require('./routes/fees'));
+app.use('/workers', require('./routes/workers'));
+app.use('/worker', require('./routes/worker'));
 
 app.use((req, res) => res.status(404).render('error', { title: 'Not found', message: 'That page does not exist.' }));
 app.use((err, req, res, _next) => {
   if (err instanceof multer.MulterError) {
     const messages = {
-      LIMIT_FILE_SIZE: `A photo is too large. Each photo must be under ${uploads.MAX_FILE_MB} MB.`,
+      LIMIT_FILE_SIZE: `A file is too large. Photos must be under ${uploads.MAX_FILE_MB} MB and CVs under ${uploads.MAX_CV_MB} MB.`,
       LIMIT_FILE_COUNT: `Upload at most ${uploads.MAX_FILES_PER_UPLOAD} photos at a time.`,
     };
     helpers.flash(req, 'error', messages[err.code] || 'Upload failed: ' + err.message);

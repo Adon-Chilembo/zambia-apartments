@@ -1,0 +1,90 @@
+<%- include('../partials/header') %>
+<% const t = h.trades.tradeOf(w.trade); const wa = h.whatsappHref(w.whatsapp || w.phone, `Hi ${w.name}, I found you on Tour Masters Apartments. I need a ${t.label.toLowerCase()}.`); %>
+<p class="small"><a href="/workers">← All maintenance workers</a></p>
+<% if (own && !w.listed) { %>
+  <div class="callout" style="margin-bottom:16px"><b>Only you can see this page.</b> Pay your monthly listing fee so landlords and tenants can find you. <a href="/worker?tab=plan">Go to My plan</a></div>
+<% } %>
+
+<div class="grid-2 worker-profile">
+  <div class="stack">
+    <div class="card pad">
+      <div class="person">
+        <% if (w.photo_filename) { %><img class="avatar xl photo" src="<%= h.photoSrc(w.photo_filename) %>" alt="<%= w.name %>">
+        <% } else { %><span class="avatar xl"><%= h.initials(w.name) %></span><% } %>
+        <div>
+          <h1 style="margin:0"><%= w.name %></h1>
+          <div class="muted"><%= t.icon %> <%= t.label %><%= w.city ? ' · ' + w.city : '' %></div>
+          <div class="issue-meta" style="margin:8px 0 0">
+            <% if (w.featured) { %><span class="badge gold">Promoted</span><% } %>
+            <% if (w.top_rated) { %><span class="badge green">Top rated</span><% } %>
+            <% if (w.experience_years) { %><span class="badge plain"><%= w.experience_years %> years experience</span><% } %>
+          </div>
+        </div>
+      </div>
+      <% if (w.headline) { %><p class="lead-line"><%= w.headline %></p><% } %>
+      <% if (w.bio) { %><h3>About my work</h3><p class="prewrap"><%= w.bio %></p><% } %>
+      <% if (w.skills) { %>
+        <h3>Skills</h3>
+        <div class="issue-meta"><% w.skills.split(',').map(s => s.trim()).filter(Boolean).forEach(s => { %><span class="badge plain"><%= s %></span><% }) %></div>
+      <% } %>
+    </div>
+
+    <div class="card" id="reviews">
+      <div class="card-head">
+        <h2>Reviews</h2>
+        <span class="stars-line"><% if (w.reviews) { %><span class="stars"><%= '★'.repeat(Math.round(w.avg_rating)) %><span class="off"><%= '★'.repeat(5 - Math.round(w.avg_rating)) %></span></span> <b><%= w.avg_rating.toFixed(1) %></b> <span class="tiny">from <%= w.reviews %></span><% } %></span>
+      </div>
+      <% if (!reviews.length) { %><div class="empty">No reviews yet. Used this maintenance worker? Be the first to rate them.</div><% } else { %>
+        <ul class="list">
+          <% reviews.forEach(r => { %>
+            <li>
+              <div class="li-row"><b><%= r.name %> <span class="tiny">· <%= r.role %></span></b><span class="stars"><%= '★'.repeat(r.rating) %><span class="off"><%= '★'.repeat(5 - r.rating) %></span></span></div>
+              <% if (r.comment) { %><p class="small" style="margin:4px 0 0"><%= r.comment %></p><% } %>
+              <div class="tiny"><%= h.date(r.created_at) %></div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card pad">
+      <h2>Contact</h2>
+      <% if (w.rates) { %><dl class="details"><dt>Rates</dt><dd><%= w.rates %></dd><% if (w.areas) { %><dt>Works in</dt><dd><%= w.areas %></dd><% } %></dl>
+      <% } else if (w.areas) { %><dl class="details"><dt>Works in</dt><dd><%= w.areas %></dd></dl><% } %>
+      <div style="display:grid;gap:8px;margin-top:14px">
+        <% if (h.telHref(w.phone)) { %><a class="btn block" href="<%= h.telHref(w.phone) %>">📞 Call <%= w.phone %></a><% } %>
+        <% if (wa) { %><a class="btn block whatsapp" href="<%= wa %>" target="_blank" rel="noopener">WhatsApp</a><% } %>
+        <a class="btn block secondary" href="mailto:<%= w.email %>">✉️ Email</a>
+        <% if (w.cv_filename) { %><a class="btn block secondary" href="/uploads/<%= w.cv_filename %>" target="_blank" rel="noopener">📄 View CV (PDF)</a><% } %>
+      </div>
+    </div>
+
+    <div class="card pad" id="review">
+      <h2><%= mine ? 'Your review' : 'Rate this maintenance worker' %></h2>
+      <% if (own) { %>
+        <p class="small muted">Landlords and tenants who have used you can rate your work here.</p>
+      <% } else if (!user) { %>
+        <p class="small muted">Landlords and tenants can rate maintenance workers they have used.</p>
+        <a class="btn sm" href="/login?next=/workers/<%= w.id %>%23review">Log in to rate</a>
+      <% } else if (!canReview) { %>
+        <p class="small muted">Only landlords and tenants can rate maintenance workers.</p>
+      <% } else { %>
+        <form method="post" action="/workers/<%= w.id %>/review">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <p class="small" id="stars-label" style="margin:0 0 4px">How was their work?</p>
+          <fieldset class="star-input" aria-labelledby="stars-label">
+            <% for (let s = 5; s >= 1; s--) { %>
+              <input type="radio" id="star<%= s %>" name="rating" value="<%= s %>" <%= mine && mine.rating === s ? 'checked' : '' %> required><label for="star<%= s %>" title="<%= s %> star<%= s === 1 ? '' : 's' %>">★</label>
+            <% } %>
+          </fieldset>
+          <div class="field"><label for="comment">Comment <span class="tiny">(optional)</span></label><textarea id="comment" name="comment" rows="3" maxlength="1000" placeholder="What did they do? Were they on time? Was the price fair?"><%= mine ? mine.comment || '' : '' %></textarea></div>
+          <button class="btn"><%= mine ? 'Update review' : 'Submit review' %></button>
+        </form>
+        <% if (mine) { %><form method="post" action="/workers/<%= w.id %>/review/delete" style="margin-top:8px"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="linklike small">Remove my review</button></form><% } %>
+      <% } %>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

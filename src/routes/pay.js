@@ -1,6 +1,6 @@
 const express = require('express');
 const { get, run } = require('../db');
-const { flash, requireRole, NETWORKS } = require('../helpers');
+const { flash, requireRole, period } = require('../helpers');
 const payments = require('../payments');
 const notify = require('../notify');
 
@@ -47,7 +47,7 @@ router.get('/simulate/:ref', requireRole('tenant'), (req, res) => {
   );
   if (!payment) return res.status(404).render('error', { title: 'Not found', message: 'Payment not found.' });
   if (payment.status !== 'pending') return res.redirect('/tenant?tab=payments');
-  res.render('tenant/simulate', { title: 'Approve payment', payment, networkName: NETWORKS[payment.network] });
+  res.render('pay-simulate', { title: 'Approve payment', payment, line: `Rent for ${period(payment.period)} · ${payment.title}` });
 });
 
 router.post('/simulate/:ref', requireRole('tenant'), (req, res) => {

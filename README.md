@@ -6,14 +6,27 @@ Find a home. Rent it. Manage it. A web platform where tenants in Zambia find, re
 
 **More documentation:** [project report](docs/project-report.md) · [architecture and routes](docs/architecture.md) · [deployment](docs/deployment.md)
 
-The site has four parts:
+The site has six parts:
 
 - **Landing page and listings** (public): a full-screen slideshow of apartment photos, each with a clickable name, a search bar (city, bedrooms, maximum rent in Kwacha, ZMW), the services on offer, and every apartment, vacant or occupied. Light and dark mode, a phone-friendly menu, and a short logo animation on the first visit.
 - **Apartment pages** show the services as icon cards (Wi-Fi, solar backup, borehole, security and more), a photo gallery with captions and a full-screen viewer, a map of the neighbourhood with directions from the visitor's location, and a contact box for the landlord (Call, WhatsApp, email).
-- **Tenant portal** lets a tenant connect to their apartment and landlord, report problems, suggest improvements, keep their details up to date and pay rent with Mobile Money (MTN MoMo, Airtel Money or Zamtel Kwacha).
+- **Tenant portal** lets a tenant connect to their apartment and landlord, report problems, suggest improvements, keep their details up to date and pay rent with Mobile Money (MTN MoMo, Airtel Money or Zamtel Kwacha) or straight from their bank account.
 - **Landlord dashboard** lets a landlord list apartments, upload photos (with captions, a cover photo and ordering), tick the services each apartment offers, approve applications, invite tenants, see each tenant's details, respond to problems and suggestions, and track rent payments.
 
+- **Maintenance workers** (`/workers`): plumbers, electricians, builders, cleaners and other trades, with search by type of work and area, a CV and profile for each worker, and star ratings from landlords and tenants. Maintenance workers sign up with their own account, pay a monthly fee to be listed and can pay extra to be promoted on the top list. Workers rated 4.5★ or more by at least 3 people reach the top list for free.
+- **Notifications**: a bell in the header shows each person what happened on their account (applications, payments, issues, reviews, receipts), with unread counts.
+
 Many landlords can use the site. Each one sees only their own apartments and tenants.
+
+### What the site charges
+
+| Who | Fee | Default |
+| --- | --- | --- |
+| Landlords | Monthly listing fee per apartment, based on the rent | 3% of the rent, at least K50 and at most K750 a month |
+| Maintenance workers | Monthly listing fee | K150 a month |
+| Maintenance workers | Top-list promotion (optional extra) | K250 a month |
+
+Fees are paid for 1, 3, 6 or 12 months at a time, by Mobile Money or bank, and can be changed in `.env`. An apartment whose listing fee runs out is hidden from search and can't take new applications, but its tenant, rent and issues keep working. Apartments that were on the site before listing fees started get 30 days free.
 
 ## Run it
 
@@ -54,6 +67,8 @@ Tenants log in as `<first name>@tenant.test`, for example:
 
 The others are chilufya, lubinda, inonge, musonda, twaambo, kelvin, mirriam, grace, emmanuel, ruth, brian, esther, moses, precious and daniel (`@tenant.test`).
 
+Maintenance workers log in as `<first name>@worker.test`: joseph (plumber, promoted and top rated), grace (electrician, top rated), peter, mary, chisomo, brian and esther. davies's listing has run out, so he isn't shown. In the demo data Mwila's *Self-contained single room* has an unpaid listing fee, so it's hidden from the site.
+
 Invite code `LSK1-2026` connects a tenant to Mwila's Rhodes Park studio.
 
 Demo photos are free [Unsplash](https://unsplash.com) photos (Unsplash licence), saved in `public/demo-photos/` (about 11.5 MB). Credits are in `public/demo-photos/CREDITS.md`.
@@ -68,6 +83,8 @@ Either way the apartment becomes *occupied* and leaves the public listings. When
 ## Mobile Money payments (Flutterwave)
 
 Paystack doesn't operate in Zambia, so payments go through [Flutterwave](https://flutterwave.com), which collects Zambian Mobile Money in ZMW.
+
+When a tenant (or a landlord or worker paying a fee) chooses **Bank**, Flutterwave's checkout opens with its bank account, bank transfer and card options instead of Mobile Money. Which banks Flutterwave can debit in Zambia depends on your Flutterwave account, so test it with your test key before going live. Without a key, a demo screen asks the payer to authorise the bank payment.
 
 Without configuration the app runs a **built-in simulator**. When a tenant clicks *Pay rent*, they see a mock Mobile Money prompt with Approve and Decline buttons, and no money moves.
 
@@ -135,6 +152,8 @@ The live site runs on [Render](https://render.com) from `render.yaml`: one free 
 | `DB_PATH` | `data/zambia_apartments.db` | SQLite database file |
 | `UPLOAD_DIR` | `data/uploads` | Where uploaded photos are stored |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | unset (save to `data/outbox`) | Mail server for email alerts |
+| `WORKER_MONTHLY_FEE`, `WORKER_FEATURED_FEE` | `150`, `250` | Workers' monthly listing fee and top-list promotion, in Kwacha |
+| `LISTING_FEE_RATE`, `LISTING_FEE_MIN`, `LISTING_FEE_MAX` | `0.03`, `50`, `750` | Apartment listing fee: share of the monthly rent, with a floor and ceiling |
 | `HERO_IMAGE_URL` | `/static/demo-photos/hero-home-at-dusk.jpg` | Landing-page background image |
 
 ## Before going live
@@ -152,12 +171,16 @@ The live site is a demo. Before real tenants use it:
 ```
 src/server.js          app setup, sessions, CSRF protection
 src/db.js              SQLite schema
-src/payments.js        Flutterwave + simulator
+src/payments.js        Flutterwave + simulator (Mobile Money and bank)
+src/fees.js            what the site charges (listing fees, worker plans)
+src/trades.js          kinds of work in the workers directory
+src/workers.js         workers search, top list and ratings
+src/notifications.js   the bell: in-app notifications
 src/services.js        services catalogue and icons
 src/uploads.js         photo upload handling
 src/mailer.js          sending email (SMTP or data/outbox)
 src/notify.js          the email for each event
-src/routes/            public, auth, account, tenant, landlord, pay, webhooks
+src/routes/            public, auth, account, tenant, landlord, pay, fees, workers, worker, notifications, webhooks
 src/seed.js            demo data (npm run seed)
 views/                 EJS templates (partials/ holds the header, footer, logo, slideshow)
 public/style.css       styling, light and dark themes

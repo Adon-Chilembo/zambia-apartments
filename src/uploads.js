@@ -38,9 +38,29 @@ function isRealImage(filePath) {
   return jpeg || png || webp;
 }
 
+// Workers upload a CV (PDF) and a profile photo on one form.
+const MAX_CV_MB = 5;
+const workerUpload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOAD_DIR,
+    filename: (req, file, cb) => cb(null, crypto.randomBytes(16).toString('hex') + (file.fieldname === 'cv' ? '.pdf' : TYPES[file.mimetype])),
+  }),
+  limits: { fileSize: MAX_CV_MB * 1024 * 1024, files: 2 },
+  fileFilter: (req, file, cb) => cb(null, file.fieldname === 'cv' ? file.mimetype === 'application/pdf' : Boolean(TYPES[file.mimetype])),
+}).fields([{ name: 'cv', maxCount: 1 }, { name: 'photo', maxCount: 1 }]);
+
+/** Check the file really is a PDF. */
+function isRealPdf(filePath) {
+  const fd = fs.openSync(filePath, 'r');
+  const b = Buffer.alloc(5);
+  fs.readSync(fd, b, 0, 5, 0);
+  fs.closeSync(fd);
+  return b.toString('ascii') === '%PDF-';
+}
+
 function removeFile(filename) {
-  if (!/^[a-f0-9]{32}\.(jpg|png|webp)$/.test(filename)) return; // only ever delete our own files
+  if (!/^[a-f0-9]{32}\.(jpg|png|webp|pdf)$/.test(filename)) return; // only ever delete our own files
   fs.rm(path.join(UPLOAD_DIR, filename), { force: true }, () => {});
 }
 
-module.exports = { UPLOAD_DIR, upload, isRealImage, removeFile, MAX_FILE_MB, MAX_FILES_PER_UPLOAD, MAX_PHOTOS_PER_APARTMENT };
+module.exports = { UPLOAD_DIR, upload, workerUpload, isRealImage, isRealPdf, MAX_CV_MB, removeFile, MAX_FILE_MB, MAX_FILES_PER_UPLOAD, MAX_PHOTOS_PER_APARTMENT };

@@ -1,0 +1,19 @@
+<%# Pay a monthly fee for some months. Pass kind, targetId, monthly, button, id. %>
+<form method="post" action="/fees/start" class="fee-form">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="kind" value="<%= kind %>">
+  <input type="hidden" name="target_id" value="<%= targetId %>">
+  <div class="field"><label for="<%= id %>-months">How long</label>
+    <select id="<%= id %>-months" name="months" data-monthly="<%= monthly %>">
+      <% h.fees.MONTH_CHOICES.forEach(m => { %><option value="<%= m %>"><%= m %> month<%= m === 1 ? '' : 's' %> · <%= h.money(monthly * m) %></option><% }) %>
+    </select>
+  </div>
+  <%- include('pay-method', { id }) %>
+  <button class="btn gold block"><%= button %> · <span data-total><%= h.money(monthly) %></span></button>
+</form>
+<script>
+  (function () {
+    var s = document.getElementById('<%= id %>-months'), out = s.form.querySelector('[data-total]');
+    s.addEventListener('change', function () { out.textContent = s.selectedOptions[0].textContent.split('· ')[1]; });
+  })();
+</script>

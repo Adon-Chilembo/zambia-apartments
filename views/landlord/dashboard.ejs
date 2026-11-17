@@ -82,6 +82,7 @@
             <div class="title"><%= a.title %></div>
             <div class="area">📍 <b><%= a.neighbourhood %></b>, <%= a.city %></div>
             <% if (a.address) { %><div class="tiny"><%= a.address %></div><% } %>
+            <% if (!h.fees.active(a.listing_paid_until)) { %><div class="issue-meta" style="margin:6px 0 0"><span class="badge red">Hidden · listing fee due</span></div><% } else if (h.fees.daysLeft(a.listing_paid_until) <= 7) { %><div class="issue-meta" style="margin:6px 0 0"><span class="badge gold">Listing ends <%= h.date(a.listing_paid_until) %></span></div><% } %>
             <% if (a.status === 'occupied') { %>
               <div class="house-tenant">
                 <span class="avatar sm"><%= h.initials(a.tenant_name) %></span>

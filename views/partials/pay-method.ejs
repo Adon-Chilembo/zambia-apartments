@@ -1,0 +1,39 @@
+<%# Choose Mobile Money or bank. Fields are read by helpers.payMethodFields. Pass `id` to keep ids unique on a page. %>
+<% const pid = locals.id || 'pm'; %>
+<div class="pay-method" data-pay-method>
+  <div class="method-pick" role="radiogroup" aria-label="How do you want to pay?">
+    <label><input type="radio" name="method" value="mobile_money" checked><span>📱 Mobile Money</span></label>
+    <label><input type="radio" name="method" value="bank"><span>🏦 Bank</span></label>
+  </div>
+  <div data-for="mobile_money">
+    <div class="field"><label for="<%= pid %>-network">Network</label>
+      <select id="<%= pid %>-network" name="network">
+        <% Object.entries(h.NETWORKS).forEach(([k, v]) => { %><option value="<%= k %>"><%= v %></option><% }) %>
+      </select>
+    </div>
+    <div class="field"><label for="<%= pid %>-phone">Mobile Money number</label><input type="tel" id="<%= pid %>-phone" name="phone" value="<%= (user && user.phone) || '' %>" placeholder="097 123 4567"></div>
+  </div>
+  <div data-for="bank" hidden>
+    <div class="field"><label for="<%= pid %>-bank">Your bank</label>
+      <select id="<%= pid %>-bank" name="bank">
+        <% Object.entries(h.BANKS).forEach(([k, v]) => { %><option value="<%= k %>"><%= v %></option><% }) %>
+      </select>
+    </div>
+    <div class="field"><label for="<%= pid %>-acct">Account holder name</label><input type="text" id="<%= pid %>-acct" name="account_name" value="<%= (user && user.name) || '' %>" maxlength="100"></div>
+    <p class="tiny" style="margin:-4px 0 12px">You'll confirm the payment with your bank on the next screen. We never ask for your PIN or card details here.</p>
+  </div>
+</div>
+<script>
+  document.querySelectorAll('[data-pay-method]').forEach(function (box) {
+    if (box.dataset.ready) return; box.dataset.ready = '1';
+    function sync() {
+      var m = box.querySelector('input[name=method]:checked').value;
+      box.querySelectorAll('[data-for]').forEach(function (p) {
+        var on = p.dataset.for === m; p.hidden = !on;
+        p.querySelectorAll('input,select').forEach(function (i) { i.disabled = !on; i.required = on; });
+      });
+    }
+    box.querySelectorAll('input[name=method]').forEach(function (r) { r.addEventListener('change', sync); });
+    sync();
+  });
+</script>

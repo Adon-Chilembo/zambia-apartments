@@ -1,0 +1,55 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div>
+    <h1>Find maintenance workers for your home</h1>
+    <p class="muted">Plumbers, electricians, builders and more, rated by landlords and tenants on Tour Masters.</p>
+  </div>
+  <% if (!user) { %><a class="btn sm secondary" href="/register?role=worker">Offer your services</a><% } %>
+</div>
+
+<form class="card pad worker-search" method="get" action="/workers" role="search">
+  <div class="field"><label for="q">Search</label><input type="search" id="q" name="q" value="<%= filters.q %>" placeholder="e.g. geyser, wiring, tiles"></div>
+  <div class="field"><label for="trade">Type of work</label>
+    <select id="trade" name="trade">
+      <option value="">All types</option>
+      <% trades.forEach(t => { %><option value="<%= t.key %>" <%= filters.trade === t.key ? 'selected' : '' %>><%= t.label %><%= tradeCounts[t.key] ? ' (' + tradeCounts[t.key] + ')' : '' %></option><% }) %>
+    </select>
+  </div>
+  <div class="field"><label for="wcity">City or area</label><input type="text" id="wcity" name="city" value="<%= filters.city %>" list="worker-cities" placeholder="e.g. Lusaka"><datalist id="worker-cities"><% cities.forEach(c => { %><option value="<%= c %>"><% }) %></datalist></div>
+  <div class="field"><label for="sort">Sort by</label>
+    <select id="sort" name="sort">
+      <option value="">Best match</option>
+      <option value="reviews" <%= filters.sort === 'reviews' ? 'selected' : '' %>>Most reviews</option>
+      <option value="new" <%= filters.sort === 'new' ? 'selected' : '' %>>Newest</option>
+    </select>
+  </div>
+  <div class="ws-go"><button class="btn">Search</button><% if (filtered) { %><a class="small" href="/workers">Clear</a><% } %></div>
+</form>
+
+<div class="trade-chips">
+  <% trades.filter(t => tradeCounts[t.key]).forEach(t => { %>
+    <a class="room-chip <%= filters.trade === t.key ? 'done' : '' %>" href="/workers?trade=<%= t.key %>"><%= t.icon %> <%= t.label %> <span class="n"><%= tradeCounts[t.key] %></span></a>
+  <% }) %>
+</div>
+
+<% if (top.length) { %>
+  <section class="top-list">
+    <div class="card-head" style="padding:0 0 12px;border:0">
+      <h2>🏆 Top list</h2>
+      <span class="small muted">Promoted maintenance workers and those rated <%= h.fees.TOP_RATED_MIN_AVERAGE %>★ or more by at least <%= h.fees.TOP_RATED_MIN_REVIEWS %> landlords and tenants</span>
+    </div>
+    <div class="worker-grid">
+      <% top.forEach(w => { %><%- include('../partials/worker-card', { w }) %><% }) %>
+    </div>
+  </section>
+<% } %>
+
+<h2 style="margin:26px 0 12px"><%= filtered ? results.length + ' maintenance worker' + (results.length === 1 ? '' : 's') + ' found' : 'All maintenance workers' %></h2>
+<% if (!results.length) { %>
+  <div class="card empty">No maintenance workers match that search yet. Try another type of work or area.</div>
+<% } else { %>
+  <div class="worker-grid">
+    <% results.forEach(w => { %><%- include('../partials/worker-card', { w }) %><% }) %>
+  </div>
+<% } %>
+<%- include('../partials/footer') %>

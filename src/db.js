@@ -157,6 +157,108 @@ addColumn('apartment_photos', 'room', 'TEXT');
   unsorted.forEach((p) => setRoom.run(guessRoom(p.caption) || 'other', p.id));
 }
 
+// Workers (plumbers, electricians...) get their own account type. SQLite can't change a CHECK
+// constraint in place, so the users table is rebuilt once with the new role allowed.
+{
+  const usersSql = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'").get().sql;
+  if (!usersSql.includes("'worker'")) {
+    const newSql = usersSql
+      .replace(/CREATE TABLE\s+(IF NOT EXISTS\s+)?"?users"?/i, 'CREATE TABLE users_new')
+      .replace(/CHECK\s*\(\s*role\s+IN\s*\(\s*'landlord'\s*,\s*'tenant'\s*\)\s*\)/i, "CHECK (role IN ('landlord','tenant','worker'))");
+    const cols = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name).join(', ');
+    db.exec('PRAGMA foreign_keys = OFF');
+    db.exec('BEGIN');
+    try {
+      db.exec(newSql);
+      db.exec(`INSERT INTO users_new (${cols}) SELECT ${cols} FROM users`);
+      db.exec('DROP TABLE users');
+      db.exec('ALTER TABLE users_new RENAME TO users');
+      db.exec('COMMIT');
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw err;
+    } finally {
+      db.exec('PRAGMA foreign_keys = ON');
+    }
+  }
+}
+
+db.exec(`
+-- A worker's public profile: what they do, where, and their CV.
+CREATE TABLE IF NOT EXISTS workers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  trade TEXT NOT NULL DEFAULT 'other',
+  headline TEXT,
+  bio TEXT,
+  skills TEXT,
+  experience_years INTEGER,
+  city TEXT,
+  areas TEXT,
+  rates TEXT,
+  cv_filename TEXT,
+  photo_filename TEXT,
+  subscription_until TEXT,   -- listed publicly while this date is today or later
+  featured_until TEXT,       -- promoted to the top list while this date is today or later
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Landlords and tenants rate workers they have used: one review per person per worker.
+CREATE TABLE IF NOT EXISTS worker_reviews (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  worker_id INTEGER NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
+  reviewer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (worker_id, reviewer_id)
+);
+
+-- In-app notifications behind the bell icon.
+CREATE TABLE IF NOT EXISTS notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  text TEXT NOT NULL,
+  link TEXT,
+  read_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read_at);
+
+-- Fees paid to the site: worker listings, top-list promotion and apartment listing fees.
+CREATE TABLE IF NOT EXISTS fee_payments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('worker','featured','listing')),
+  target_id INTEGER NOT NULL,  -- workers.id, or apartments.id for a listing fee
+  months INTEGER NOT NULL,
+  amount REAL NOT NULL,
+  method TEXT NOT NULL DEFAULT 'mobile_money',
+  network TEXT,
+  phone TEXT,
+  bank TEXT,
+  account_name TEXT,
+  provider TEXT NOT NULL,
+  reference TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','success','failed')),
+  paid_until TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  paid_at TEXT
+);
+`);
+
+// Rent paid by bank: which bank and whose account.
+addColumn('payments', 'bank', 'TEXT');
+addColumn('payments', 'account_name', 'TEXT');
+
+// Apartments show on the site while their listing fee is paid. Apartments that were already
+// listed before fees existed get 30 days free, so nothing disappears overnight.
+if (!db.prepare('PRAGMA table_info(apartments)').all().some((c) => c.name === 'listing_paid_until')) {
+  db.exec('ALTER TABLE apartments ADD COLUMN listing_paid_until TEXT');
+  db.exec("UPDATE apartments SET listing_paid_until = date('now', '+30 days')");
+}
+
 /** Run several statements atomically. */
 function transaction(fn) {
   db.exec('BEGIN');

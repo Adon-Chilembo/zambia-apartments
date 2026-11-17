@@ -16,6 +16,7 @@
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <% if (!photos.length) { %><a class="btn sm gold" href="<%= base %>?tab=photos">Add a main photo</a><% } %>
+      <% if (!h.fees.active(a.listing_paid_until)) { %><a class="btn sm gold" href="<%= base %>?tab=listing">Pay listing fee to show it</a><% } %>
       <a class="btn sm glass" href="/apartments/<%= a.id %>">View public listing</a>
     </div>
   </div>
@@ -27,6 +28,7 @@
   <a href="<%= base %>?tab=payments" class="<%= tab === 'payments' ? 'active' : '' %>">Payments <span class="count"><%= payments.length %></span></a>
   <a href="<%= base %>?tab=photos" class="<%= tab === 'photos' ? 'active' : '' %>">Photos <span class="count"><%= photos.length %></span></a>
   <a href="<%= base %>?tab=edit" class="<%= tab === 'edit' ? 'active' : '' %>">Edit listing &amp; services</a>
+  <a href="<%= base %>?tab=listing" class="<%= tab === 'listing' ? 'active' : '' %>">Listing fee <% if (!h.fees.active(a.listing_paid_until)) { %><span class="count warn">!</span><% } %></a>
 </nav>
 
 <% if (tab === 'tenant') { %>
@@ -148,7 +150,7 @@
               <td><%= h.date(p.paid_at || p.created_at) %></td>
               <td><%= p.tenant_name %></td>
               <td><b><%= h.period(p.period) %></b></td>
-              <td><%= h.NETWORKS[p.network] || 'Mobile Money' %><div class="tiny"><%= p.phone %></div></td>
+              <td><%= h.payMethod(p) %><div class="tiny"><%= h.payFrom(p) %></div></td>
               <td class="tiny"><%= p.reference %></td>
               <td class="num"><%= h.money(p.amount) %></td>
               <td><%- include('../partials/status', { s: p.status }) %></td>
@@ -233,6 +235,37 @@
       <% } %>
     </section>
   <% }) %>
+<% } %>
+
+<% if (tab === 'listing') { %>
+  <% const fee = h.fees.listingFee(a.rent_amount); const live = h.fees.active(a.listing_paid_until); const left = h.fees.daysLeft(a.listing_paid_until); %>
+  <div class="grid-2">
+    <div class="card pad">
+      <h2>Listing fee</h2>
+      <p class="muted small">Apartments show on Tour Masters while their listing fee is paid. The fee depends on the rent: <b><%= Math.round(h.fees.LISTING_RATE * 100) %>% of the monthly rent</b>, at least <%= h.money(h.fees.LISTING_MIN) %> and at most <%= h.money(h.fees.LISTING_MAX) %> a month.</p>
+      <dl class="details">
+        <dt>Monthly rent</dt><dd><%= h.money(a.rent_amount) %></dd>
+        <dt>Listing fee</dt><dd><b><%= h.money(fee) %></b> / month</dd>
+        <dt>Status</dt><dd><% if (live) { %><span class="badge green">On the site until <%= h.date(a.listing_paid_until) %></span><% if (left <= 7) { %> <span class="badge gold"><%= left %> day<%= left === 1 ? '' : 's' %> left</span><% } %><% } else { %><span class="badge red">Hidden from the site</span><% } %></dd>
+      </dl>
+      <p class="tiny" style="margin-top:12px">While hidden, the apartment doesn't appear in search and nobody new can apply. Your current tenant, rent payments and issues keep working as normal.</p>
+    </div>
+    <div class="card pad">
+      <h2><%= live ? 'Extend the listing' : 'Put it on the site' %></h2>
+      <%- include('../partials/fee-form', { kind: 'listing', targetId: a.id, monthly: fee, button: live ? 'Extend' : 'Pay and list', id: 'listing' }) %>
+    </div>
+  </div>
+  <div class="card" style="margin-top:18px">
+    <div class="card-head"><h2>Listing fee payments</h2></div>
+    <% if (!listingFees.length) { %><div class="empty">No listing fees paid yet.</div><% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Months</th><th>Method</th><th>Reference</th><th class="num">Amount</th><th>Status</th></tr></thead>
+        <tbody><% listingFees.forEach(f => { %>
+          <tr><td><%= h.date(f.paid_at || f.created_at) %></td><td><%= f.months %><% if (f.paid_until) { %><div class="tiny">until <%= h.date(f.paid_until) %></div><% } %></td><td><%= h.payMethod(f) %><div class="tiny"><%= h.payFrom(f) %></div></td><td class="tiny"><%= f.reference %></td><td class="num"><%= h.money(f.amount) %></td><td><%- include('../partials/status', { s: f.status }) %></td></tr>
+        <% }) %></tbody>
+      </table></div>
+    <% } %>
+  </div>
 <% } %>
 
 <% if (tab === 'edit') { %>

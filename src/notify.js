@@ -3,7 +3,9 @@
 // so callers can fire and forget: notify.issueReported(id).
 const { get, run } = require('./db');
 const mailer = require('./mailer');
-const { money, period, people, NETWORKS, STATUS_LABEL } = require('./helpers');
+const notifications = require('./notifications');
+const { money, period, date, people, payMethod, payFrom, STATUS_LABEL } = require('./helpers');
+const { KINDS } = require('./fees');
 
 const e = mailer.escapeHtml;
 // RENDER_EXTERNAL_URL is set automatically when hosted on Render.
@@ -62,6 +64,9 @@ async function toUser(userId, kind, content) {
   const u = get('SELECT id, name, email, email_notifications FROM users WHERE id = ?', userId);
   if (!u) return 'skipped';
   const subject = content.subject;
+  // Every event also shows under the bell, whether or not the person gets emails.
+  const href = content.button && content.button.href;
+  notifications.add(u.id, kind, content.notice || subject, href ? href.replace(base(), '') || '/' : null);
   if (!u.email_notifications) {
     run('INSERT INTO email_log (user_id, to_email, kind, subject, status) VALUES (?, ?, ?, ?, ?)', u.id, u.email, kind, subject, 'opted_out');
     return 'opted_out';
@@ -229,23 +234,71 @@ const paymentReceived = safely((reference) => {
     reference
   );
   if (!p) return;
-  const via = NETWORKS[p.network] || 'Mobile Money';
+  const via = payMethod(p);
   return Promise.all([
     toUser(p.landlord_id, 'payment_received', {
       subject: `Rent received: ${money(p.amount)} from ${p.tenant_name}`,
       heading: `${money(p.amount)} rent received`,
       intro: `Hi ${e(firstName(p.landlord_name))}, ${e(p.tenant_name)} paid rent for <b>${e(p.title)}</b> in ${place(p)}.`,
-      rows: [['For', e(period(p.period))], ['Amount', money(p.amount)], ['Paid with', `${e(via)} · ${e(p.phone || '')}`], ['Reference', e(p.reference)]],
+      rows: [['For', e(period(p.period))], ['Amount', money(p.amount)], ['Paid with', `${e(via)} · ${e(payFrom(p))}`], ['Reference', e(p.reference)]],
       button: { label: 'See all payments', href: `${base()}/landlord/payments` },
     }),
     toUser(p.tenant_id, 'payment_receipt', {
       subject: `Receipt: ${money(p.amount)} rent for ${period(p.period)}`,
       heading: 'Payment receipt',
       intro: `Hi ${e(firstName(p.tenant_name))}, thank you. We've received your rent for <b>${e(p.title)}</b>.`,
-      rows: [['For', e(period(p.period))], ['Amount', money(p.amount)], ['Paid with', `${e(via)} · ${e(p.phone || '')}`], ['Reference', e(p.reference)], ['Landlord', e(p.landlord_name)]],
+      rows: [['For', e(period(p.period))], ['Amount', money(p.amount)], ['Paid with', `${e(via)} · ${e(payFrom(p))}`], ['Reference', e(p.reference)], ['Landlord', e(p.landlord_name)]],
       button: { label: 'View payment history', href: `${base()}/tenant?tab=payments` },
     }),
   ]);
 });
 
-module.exports = { applicationReceived, applicationDecided, tenantJoined, issueReported, issueUpdated, paymentReceived, layout };
+/** A fee to the site was paid (worker listing, top-list promotion or apartment listing): send a receipt. */
+const feePaid = safely((reference) => {
+  const f = get(
+    `SELECT f.*, u.name, a.title AS apt_title FROM fee_payments f JOIN users u ON u.id = f.user_id
+       LEFT JOIN apartments a ON f.kind = 'listing' AND a.id = f.target_id
+      WHERE f.reference = ? AND f.status = 'success'`,
+    reference
+  );
+  if (!f) return;
+  const what = f.kind === 'listing' ? `Listing fee for ${f.apt_title}` : KINDS[f.kind].label;
+  const href = f.kind === 'listing' ? `${base()}/landlord/apartments/${f.target_id}?tab=listing` : `${base()}/worker?tab=plan`;
+  return toUser(f.user_id, 'fee_receipt', {
+    subject: `Receipt: ${money(f.amount)} · ${what}`,
+    notice: `Payment received: ${money(f.amount)} for ${what}. Active until ${date(f.paid_until)}.`,
+    heading: 'Payment receipt',
+    intro: `Hi ${e(firstName(f.name))}, thank you. Your payment has gone through.`,
+    rows: [
+      ['For', e(what)],
+      ['Months', String(f.months)],
+      ['Amount', money(f.amount)],
+      ['Paid with', `${e(payMethod(f))} · ${e(payFrom(f))}`],
+      ['Active until', e(date(f.paid_until))],
+      ['Reference', e(f.reference)],
+    ],
+    button: { label: f.kind === 'listing' ? 'See your listing' : 'See your plan', href },
+  });
+});
+
+/** Someone rated a worker: tell the worker. */
+const workerReviewed = safely((reviewId) => {
+  const r = get(
+    `SELECT r.*, w.user_id AS worker_user, w.id AS wid, u.name AS reviewer, u.role AS reviewer_role, wu.name AS worker_name
+       FROM worker_reviews r JOIN workers w ON w.id = r.worker_id JOIN users u ON u.id = r.reviewer_id
+       JOIN users wu ON wu.id = w.user_id WHERE r.id = ?`,
+    reviewId
+  );
+  if (!r) return;
+  const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+  return toUser(r.worker_user, 'worker_reviewed', {
+    subject: `New ${r.rating}-star review from ${r.reviewer}`,
+    heading: `You got a ${r.rating}-star review`,
+    intro: `Hi ${e(firstName(r.worker_name))}, ${e(r.reviewer)} (${e(r.reviewer_role)}) rated your work.`,
+    rows: [['Rating', `<span style="color:#FE8501">${stars}</span>`]],
+    quote: r.comment || null,
+    button: { label: 'See your reviews', href: `${base()}/workers/${r.wid}` },
+  });
+});
+
+module.exports = { applicationReceived, applicationDecided, tenantJoined, issueReported, issueUpdated, paymentReceived, feePaid, workerReviewed, layout };

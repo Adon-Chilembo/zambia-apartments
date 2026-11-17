@@ -6,7 +6,8 @@ const { flash } = require('../helpers');
 const router = express.Router();
 
 const safeNext = (n) => (typeof n === 'string' && n.startsWith('/') && !n.startsWith('//') ? n : null);
-const home = (user) => (user.role === 'landlord' ? '/landlord' : '/tenant');
+const home = (user) => ({ landlord: '/landlord', worker: '/worker' }[user.role] || '/tenant');
+const ROLES = ['tenant', 'landlord', 'worker'];
 
 router.get('/login', (req, res) => {
   if (req.user) return res.redirect(home(req.user));
@@ -34,7 +35,7 @@ router.post('/login', (req, res) => {
 
 router.get('/register', (req, res) => {
   if (req.user) return res.redirect(home(req.user));
-  const role = req.query.role === 'landlord' ? 'landlord' : 'tenant';
+  const role = ROLES.includes(req.query.role) ? req.query.role : 'tenant';
   res.render('register', { title: 'Create account', form: { role, code: req.query.code || '' }, next: safeNext(req.query.next) || '' });
 });
 
@@ -43,7 +44,7 @@ router.post('/register', (req, res) => {
     name: String(req.body.name || '').trim(),
     email: String(req.body.email || '').trim().toLowerCase(),
     phone: String(req.body.phone || '').trim(),
-    role: req.body.role === 'landlord' ? 'landlord' : 'tenant',
+    role: ROLES.includes(req.body.role) ? req.body.role : 'tenant',
     code: String(req.body.code || '').trim().toUpperCase(),
   };
   const password = String(req.body.password || '');
@@ -70,7 +71,7 @@ router.post('/register', (req, res) => {
       req.session.pendingInvite = form.code;
     }
     flash(req, 'success', 'Your account is ready.');
-    res.redirect(safeNext(req.body.next) || (form.role === 'landlord' ? '/landlord' : '/tenant'));
+    res.redirect(safeNext(req.body.next) || home({ role: form.role }));
   });
 });
 

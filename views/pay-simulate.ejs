@@ -1,0 +1,18 @@
+<%- include('partials/header') %>
+<% const bank = payment.method === 'bank'; %>
+<div class="momo">
+  <p class="tiny"><%= bank ? 'Demo bank approval. In live mode your bank asks you to confirm in its app or with a one-time code.' : 'Demo Mobile Money prompt. In live mode this appears on your phone.' %></p>
+  <div class="phone-frame <%= bank ? 'bank' : '' %>">
+    <div class="small muted"><%= h.payMethod(payment) %></div>
+    <div style="font-weight:700;margin-top:10px"><%= bank ? 'Authorise this bank payment' : 'Approve payment' %> to Tour Masters Apartments?</div>
+    <div class="amt"><%= h.money(payment.amount) %></div>
+    <div class="small muted"><%= line %></div>
+    <div class="tiny" style="margin:6px 0 20px">From <%= h.payFrom(payment) %> · Ref <%= payment.reference %></div>
+    <form method="post" style="display:grid;gap:8px">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <button class="btn block" name="decision" value="approve"><%= bank ? 'Authorise' : 'Approve' %></button>
+      <button class="btn block danger" name="decision" value="decline">Decline</button>
+    </form>
+  </div>
+</div>
+<%- include('partials/footer') %>

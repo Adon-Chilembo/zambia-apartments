@@ -150,7 +150,7 @@
                 <tr>
                   <td><b><%= h.period(p.period) %></b></td>
                   <td><%= h.date(p.paid_at || p.created_at) %></td>
-                  <td><%= networks[p.network] || 'Mobile Money' %><div class="tiny"><%= p.phone %></div></td>
+                  <td><%= h.payMethod(p) %><div class="tiny"><%= h.payFrom(p) %></div></td>
                   <td class="tiny"><%= p.reference %></td>
                   <td class="num"><%= h.money(p.amount) %></td>
                   <td><%- include('../partials/status', { s: p.status }) %><% if (p.status === 'pending' && paymentProvider === 'flutterwave') { %><form class="inline-form" method="post" action="/pay/recheck/<%= p.reference %>"><input type="hidden" name="_csrf" value="<%= csrf %>"> <button class="btn sm secondary">Check</button></form><% } %></td>
@@ -162,8 +162,8 @@
       </div>
     </div>
     <div class="card pad" id="pay">
-      <h2>Pay rent with Mobile Money</h2>
-      <p class="muted small">Your rent is <b><%= h.money(home.rent_amount) %></b> per month. You'll get a prompt on your phone to approve the payment.</p>
+      <h2>Pay rent</h2>
+      <p class="muted small">Your rent is <b><%= h.money(home.rent_amount) %></b> per month. Pay with Mobile Money or straight from your bank account.</p>
       <form method="post" action="/tenant/pay">
         <input type="hidden" name="_csrf" value="<%= csrf %>">
         <div class="field"><label for="period">Month</label>
@@ -171,16 +171,11 @@
             <% periods.forEach(p => { if (!paidPeriods.includes(p)) { %><option value="<%= p %>" <%= p === nextUnpaid ? 'selected' : '' %>><%= h.period(p) %></option><% } }) %>
           </select>
         </div>
-        <div class="field"><label for="network">Network</label>
-          <select id="network" name="network" required>
-            <% Object.entries(networks).forEach(([k, v]) => { %><option value="<%= k %>"><%= v %></option><% }) %>
-          </select>
-        </div>
-        <div class="field"><label for="phone">Mobile Money number</label><input type="tel" id="phone" name="phone" value="<%= user.phone || '' %>" required placeholder="097 123 4567"></div>
+        <%- include('../partials/pay-method', { id: 'rent' }) %>
         <button class="btn gold block">Pay <%= h.money(home.rent_amount) %></button>
       </form>
       <% if (paymentProvider === 'simulator') { %>
-        <p class="tiny" style="margin-top:10px">Demo mode: no real money moves. Add a Flutterwave key to take real Mobile Money payments.</p>
+        <p class="tiny" style="margin-top:10px">Demo mode: no real money moves. Add a Flutterwave key to take real Mobile Money and bank payments.</p>
       <% } else { %>
         <p class="tiny" style="margin-top:10px">Secured by Flutterwave.<% if (paymentKeyMode === 'test') { %> <span class="badge gold">Test mode: no real money is charged</span><% } %></p>
       <% } %>

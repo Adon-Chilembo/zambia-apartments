@@ -43,15 +43,16 @@ async function flutterwave(method, path, body) {
 }
 
 /** Start a payment. Returns the URL the tenant should be sent to. */
-async function startPayment({ reference, amount, email, name, phone, callbackUrl, simulatorUrl, title, metadata }) {
+async function startPayment({ reference, amount, email, name, phone, method = 'mobile_money', callbackUrl, simulatorUrl, title, metadata }) {
   if (provider === 'simulator') return simulatorUrl;
   const data = await flutterwave('POST', '/payments', {
     tx_ref: reference,
     amount: Number(amount.toFixed(2)),
     currency: CURRENCY,
     redirect_url: callbackUrl,
-    payment_options: 'mobilemoneyzambia',
-    customer: { email, name, phonenumber: phone },
+    // Bank payments use Flutterwave's bank account and bank transfer options (card as a fallback).
+    payment_options: method === 'bank' ? 'account,banktransfer,card' : 'mobilemoneyzambia',
+    customer: { email, name, phonenumber: phone || undefined },
     customizations: { title: 'Tour Masters Apartments', description: title },
     meta: metadata,
   });

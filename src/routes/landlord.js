@@ -167,7 +167,7 @@ router.post('/apartments', (req, res) => {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     req.user.id, f.title, f.neighbourhood, f.city, f.bedrooms, f.bathrooms, f.rent_amount, f.description, f.amenities, f.services, f.address
   );
-  flash(req, 'success', 'Apartment listed. Now add photos so tenants can see the place.');
+  flash(req, 'success', 'Apartment saved. Add photos, then pay the listing fee to show it on the site.');
   res.redirect('/landlord/apartments/' + r.lastInsertRowid + '?tab=photos');
 });
 
@@ -192,7 +192,8 @@ router.get('/apartments/:id', (req, res) => {
     apartment.id
   );
   const photos = all('SELECT * FROM apartment_photos WHERE apartment_id = ? ORDER BY sort_order, id', apartment.id);
-  const tab = ['tenant', 'issues', 'payments', 'photos', 'edit'].includes(req.query.tab) ? req.query.tab : 'tenant';
+  const tab = ['tenant', 'issues', 'payments', 'photos', 'edit', 'listing'].includes(req.query.tab) ? req.query.tab : 'tenant';
+  const listingFees = all("SELECT * FROM fee_payments WHERE kind = 'listing' AND target_id = ? ORDER BY id DESC LIMIT 20", apartment.id);
   res.render('landlord/apartment', {
     title: apartment.title,
     apartment,
@@ -204,6 +205,7 @@ router.get('/apartments/:id', (req, res) => {
     pastTenants,
     photos,
     uploadLimits: uploads,
+    listingFees,
     tab,
     paidThisMonth: tenant && paymentRows.some((p) => p.tenant_id === tenant.id && p.period === currentPeriod() && p.status === 'success'),
   });

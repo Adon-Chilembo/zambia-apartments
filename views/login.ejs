@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 <div class="auth card pad">
   <h1>Log in</h1>
-  <p class="muted">Tenants and landlords use the same login.</p>
+  <p class="muted">Tenants, landlords and maintenance workers use the same login.</p>
   <% if (locals.error) { %><div class="flash error"><%= error %></div><% } %>
   <form method="post" action="/login">
     <input type="hidden" name="_csrf" value="<%= csrf %>">
