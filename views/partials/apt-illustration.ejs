@@ -3,13 +3,13 @@
 <svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
   <defs>
     <linearGradient id="<%= gid %>" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1b2a4a"/><stop offset=".6" stop-color="<%= sw[0] %>" stop-opacity=".85"/><stop offset="1" stop-color="#f59a3b"/>
+      <stop offset="0" stop-color="#3a2615"/><stop offset=".6" stop-color="<%= sw[0] %>" stop-opacity=".85"/><stop offset="1" stop-color="#f59a3b"/>
     </linearGradient>
   </defs>
   <rect width="320" height="200" fill="url(#<%= gid %>)"/>
   <circle cx="258" cy="48" r="20" fill="#ffd9a8" opacity=".8"/>
-  <rect x="58" y="66" width="142" height="134" fill="#141c19"/>
-  <rect x="192" y="102" width="82" height="98" fill="#1d2723"/>
+  <rect x="58" y="66" width="142" height="134" fill="#1f150d"/>
+  <rect x="192" y="102" width="82" height="98" fill="#2a1d12"/>
   <% for (let r = 0; r < 4; r++) { for (let c = 0; c < 4; c++) { %>
     <rect x="<%= 72 + c * 31 %>" y="<%= 80 + r * 27 %>" width="18" height="14" rx="2" fill="#ffcf8a" opacity="<%= (r + c + apt.id) % 3 ? '.85' : '.2' %>"/>
   <% } } %>
